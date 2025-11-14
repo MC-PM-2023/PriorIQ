@@ -1,0 +1,20 @@
+.flash-messages {
+    list-style-type: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+.flash-messages li {
+    padding: 10px;
+    margin-bottom: 10px;
+    color: white;
+    border-radius: 5px;
+}
+
+.flash-messages .danger {
+    background-color: red;
+}
+
+.flash-messages .success {
+    background-color: green;
+}

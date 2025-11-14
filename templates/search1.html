@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','Arial'] },
+        colors: { neon:'#00F0FF', neon2:'#00C6FF' },
+        boxShadow: { glow:'0 0 14px rgba(0,240,255,.7), 0 0 30px rgba(0,198,255,.6)' },
+        backgroundImage: {
+          hero:'radial-gradient(900px 400px at 15% -10%, rgba(0,198,255,.25), transparent), radial-gradient(900px 400px at 110% 30%, rgba(0,240,255,.18), transparent), linear-gradient(180deg, rgba(12,18,30,.95), rgba(12,18,30,.85))'
+        }
+      }
+    }
+  }
+</script>
+<style>
+  /* Lock outer scroll; only table scrolls */
+  .search-page{position:relative; background:#0b1220; color:#e6f1ff; min-height:100vh; overflow:hidden;}
+  body{overflow:hidden;}
+  .hero-h{height:70px;}
+  #bg-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2;
+            filter:brightness(.9) contrast(1.1) saturate(1.05);}
+  .glass{background:rgba(255,255,255,.07); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.14);}
+  /* Autocomplete wrapper enables "push-down" mode */
+  .ac-wrap{position:relative;}
+  /* Default: list overlays (hidden by default) */
+  #autocomplete-list{
+    position:absolute; left:0; right:0; margin-top:.5rem;
+    border-radius:12px; display:none;
+    background:rgba(6,24,40,.96); backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.10);
+    max-height:240px; overflow:auto; z-index:30;
+    box-shadow:0 0 14px rgba(0,240,255,.25), 0 0 30px rgba(0,198,255,.2);
+  }
+  /* When open, switch to static so it takes space and pushes table down */
+  .ac-wrap.ac-open #autocomplete-list{
+    position:static; display:block; z-index:auto;
+  }
+  /* Spacer under the search-card when list is open (extra breathing room) */
+  .search-card{transition: margin-bottom .2s ease;}
+  .search-card.open{margin-bottom:1rem;}
+  /* Inner-scroll container; height set dynamically */
+  .results-scroll{ overflow:auto; border-radius:12px; }
+  /* Table */
+  table.results{ width:100%; border-collapse:collapse; table-layout:fixed; color:#eef6ff; font-size:14px; }
+  .results th,.results td{ padding:.8rem .7rem; border:1px solid rgba(255,255,255,.08); word-break:break-word; text-align: left; }
+  .results thead th{
+    position:sticky; top:0; z-index:5;
+    background:rgba(19,31,56,.95); backdrop-filter:blur(6px);
+    text-transform:uppercase; font-size:.65rem; letter-spacing:.05em;
+  }
+  .results tbody tr:nth-child(even){background-color:rgba(255,255,255,.03);}
+  .results tbody tr:nth-child(odd){ background-color:rgba(255,255,255,.07);}
+  .results tbody tr:hover{ background-color:rgba(0,198,255,.1); }
+  .results-scroll::-webkit-scrollbar{ width:10px; height:10px; }
+  .results-scroll::-webkit-scrollbar-thumb{ background:rgba(0,198,255,.4); border-radius:8px; }
+  ::selection{ background:rgba(0,198,255,.35); color:#05121f; }
+</style>
+<div class="search-page">
+  <video id="bg-video" autoplay muted loop>
+    <source src="{{ url_for('static', filename='vv.mp4') }}" type="video/mp4">
+  </video>
+  <!-- Header -->
+  <section class="hero-h bg-hero flex items-center justify-center">
+    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-wider uppercase bg-clip-text text-transparent bg-gradient-to-r from-neon to-neon2 drop-shadow-[0_0_10px_rgba(0,198,255,.45)]">
+      Mapped Results
+    </h1>
+  </section>
+  <section class="relative">
+    <div class="max-w-7xl mx-auto px-6 sm:px-8 pt-5">
+      <!-- Search Bar -->
+      <div id="searchCard" class="search-card glass rounded-2xl p-5 mb-4 ring-1 ring-white/5">
+        <form method="POST" class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+          <label for="project_code" class="text-sm font-semibold text-white/90">Enter Project Code</label>
+          <div id="acWrap" class="ac-wrap w-full lg:max-w-lg">
+            <input
+              type="text" id="project_code" name="project_code"
+              placeholder="e.g. IP102-1600" autocomplete="off" required
+              class="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 outline-none focus:ring-4 focus:ring-neon/30 focus:border-neon/60 text-white placeholder-white/50 shadow-inner"
+            />
+            <ul id="autocomplete-list"></ul>
+          </div>
+          <button
+            type="submit"
+            class="relative inline-flex justify-center items-center rounded-full px-8 py-2.5 font-extrabold text-lg bg-gradient-to-r from-neon to-neon2 text-[#0B1220] shadow-glow transition-transform active:translate-y-[1px]">
+            Search
+          </button>
+          {% if message %}
+            <div class="lg:ml-auto text-red-300 font-semibold text-sm">{{ message }}</div>
+          {% endif %}
+        </form>
+      </div>
+      <!-- Inner-scroll table -->
+      <div class="result-shell rounded-2xl p-0 border border-white/10 bg-[rgba(10,14,25,.55)]">
+        {% if table %}
+          <div id="resultsWrap" class="results-scroll">
+            <table class="results">
+              {{ table|safe }}
+            </table>
+          </div>
+        {% else %}
+          <div class="p-10 text-center text-white/70">Enter a project code above to see the mapped results.</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+  const suggestions = {{ suggestions | tojson }};
+  const input = document.getElementById('project_code');
+  const list  = document.getElementById('autocomplete-list');
+  const acWrap = document.getElementById('acWrap');
+  const searchCard = document.getElementById('searchCard');
+  // Build items
+  function renderList(items){
+    list.innerHTML='';
+    items.forEach(code=>{
+      const li=document.createElement('li');
+      li.className='px-4 py-2.5 cursor-pointer hover:bg-[rgba(0,198,255,.2)] transition';
+      li.textContent=code;
+      li.onclick=()=>{ input.value=code; closeList(); };
+      list.appendChild(li);
+    });
+  }
+  function openList(){
+    acWrap.classList.add('ac-open');
+    searchCard.classList.add('open');
+    list.style.display='block';
+    sizeResults(); // recalc inner height since layout pushed down
+  }
+  function closeList(){
+    list.style.display='none';
+    acWrap.classList.remove('ac-open');
+    searchCard.classList.remove('open');
+    sizeResults();
+  }
+  // Autocomplete behavior
+  input.addEventListener('input', ()=>{
+    const v=input.value.trim().toLowerCase();
+    if(!v){ closeList(); return; }
+    const filtered=suggestions.filter(s=>s.toLowerCase().includes(v)).slice(0,80);
+    if(!filtered.length){ closeList(); return; }
+    renderList(filtered);
+    openList();
+  });
+  document.addEventListener('click', (e)=>{
+    if(!acWrap.contains(e.target)) closeList();
+  });
+  // Hide "id" column (safety if backend didn’t drop)
+  function hideColumnByHeader(headerText){
+    const tbl=document.querySelector('table.results'); if(!tbl) return;
+    const ths=[...tbl.querySelectorAll('thead th')];
+    const idx=ths.findIndex(th=>th.textContent.trim().toLowerCase()===headerText.toLowerCase());
+    if(idx===-1) return;
+    ths[idx].style.display='none';
+    tbl.querySelectorAll('tbody tr').forEach(tr=>{
+      if(tr.children[idx]) tr.children[idx].style.display='none';
+    });
+  }
+  // Dynamic inner height = viewport - (top of results) - padding
+  function sizeResults(){
+    const wrap=document.getElementById('resultsWrap');
+    if(!wrap) return;
+    const rect=wrap.getBoundingClientRect();
+    const vh=window.innerHeight;
+    const bottomPad=16;
+    const h=vh - rect.top - bottomPad;
+    wrap.style.height = (h>140 ? h : 140) + 'px';
+  }
+  window.addEventListener('load', ()=>{
+    hideColumnByHeader('id');
+    sizeResults();
+  });
+  window.addEventListener('resize', sizeResults);
+</script>
+{% endblock %}

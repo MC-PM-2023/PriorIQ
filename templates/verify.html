@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verify</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-image: url('/static/ano.jpg'); /* Ensure image exists */
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: #ffd700;
+      text-align: center;
+      padding: 20px 0;
+      font-size: 28px;
+      font-weight: bold;
+      text-transform: uppercase;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(4px);
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 25px 20px;
+      border-radius: 16px;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      width: 100%;
+      max-width: 300px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 20px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    form label {
+      font-size: 13px;
+      display: block;
+      margin-bottom: 10px;
+      text-align: left;
+      color: #fff;
+    }
+
+    form input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.85);
+      color: #333;
+    }
+
+    form input[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background-color: #ffcc00;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    form input[type="submit"]:hover {
+      background-color: #ffd700;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Datasolve</div>
+
+  <div class="container">
+    <h1>Verify Your Account</h1>
+    <form method="POST" action="/verify">
+      <label for="otp">Enter OTP:</label>
+      <input type="text" id="otp" name="otp" required />
+      <input type="submit" value="Verify" />
+    </form>
+  </div>
+</body>
+</html>
+
+
+
+

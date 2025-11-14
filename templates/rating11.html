@@ -1,0 +1,803 @@
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+  /* ===== Theme ===== */
+  :root{
+    --bg1:#0f0c29; --bg2:#302b63; --bg3:#24243e;
+    --glass:rgba(255,255,255,.10);
+    --text:#eef2ff; --muted:#b8c1ec;
+    --card:#151a3a; --stroke:rgba(255,255,255,.20);
+    --track:rgba(255,255,255,.20); --ticks:rgba(255,255,255,.35);
+
+    /* tints */
+    --exp:#22c55e;  /* green  */
+    --imp:#f59e0b;  /* yellow */
+    --not:#ef4444;  /* red    */
+  }
+  .theme-light{
+    --bg1:#f8fafc; --bg2:#f1f5f9; --bg3:#e2e8f0;
+    --glass:#ffffffea;
+    --text:#0f172a; --muted:#475569;
+    --card:#ffffff; --stroke:rgba(2,6,23,.16);
+    --track:#e5e7eb; --ticks:#cbd5e1;
+  }
+
+  body{
+    color:var(--text);
+    background:
+      radial-gradient(1200px 800px at 20% -10%, rgba(255,255,255,.06), transparent),
+      linear-gradient(120deg,var(--bg1),var(--bg2),var(--bg3));
+  }
+
+  .wrap{max-width:1200px;margin:2rem auto;padding:0 1rem}
+  .title{font-weight:800;letter-spacing:.3px;font-size:clamp(1.4rem,2.6vw,2.1rem)}
+  .sub{color:var(--muted);font-size:.95rem}
+
+  .pill{font-size:.8rem;padding:.45rem .7rem;border-radius:999px;border:1px solid var(--stroke);background:var(--glass)}
+  .btn-outline-none{background:transparent;border:1px solid var(--stroke);border-radius:8px;color:var(--text);padding:6px 12px}
+
+  /* ===== Cards / Borders (clear, tinted) ===== */
+  .headline-grid{display:grid;gap:1rem;margin-top:1rem;margin-bottom:1.25rem;grid-template-columns:1fr}
+  @media(min-width:900px){.headline-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:1400px){.headline-grid{grid-template-columns:repeat(5,1fr)}}
+
+  /* default card surface */
+  .card-surface{
+    background:linear-gradient(180deg, color-mix(in oklab, var(--card) 92%, transparent), color-mix(in oklab, var(--card) 96%, transparent));
+    border-radius:18px;
+    box-shadow:
+      0 0 0 1.5px var(--bd, var(--stroke)) inset,
+      0 8px 24px rgba(0,0,0,.15);
+    transition:transform .15s ease, box-shadow .2s ease;
+    backdrop-filter: blur(8px);
+    cursor:pointer;
+  }
+  .card-surface:hover{transform:translateY(-2px); box-shadow:0 10px 26px rgba(0,0,0,.22)}
+  .card-surface:focus-visible{outline:2px solid var(--bd, var(--stroke)); outline-offset:2px}
+
+  .headline{padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between}
+  .kcard{padding:1rem}
+
+  /* tint helpers */
+  .card-tint--exp{ --bd: color-mix(in oklab, var(--exp) 62%, var(--stroke)); }
+  .card-tint--imp{ --bd: color-mix(in oklab, var(--imp) 62%, var(--stroke)); }
+  .card-tint--not{ --bd: color-mix(in oklab, var(--not) 62%, var(--stroke)); }
+
+  .hcap{font-size:.95rem;color:var(--muted);font-weight:700}
+  .hnum{font-size:clamp(2rem,4vw,2.6rem);font-weight:900;letter-spacing:.5px}
+
+  /* ===== Stat row: [icon 73.56% (boxed count)] ===== */
+  .stat-row{
+    display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+    margin-top:.55rem; font-size:.92rem;
+  }
+  .stat-left{display:flex; align-items:center; gap:.5rem; font-weight:700; color:var(--muted)}
+
+  .pct{font-weight:800; letter-spacing:.2px}
+
+  .count-box{
+    min-width:40px; padding:.12rem .5rem; border-radius:.55rem;
+    text-align:center; font-weight:900;
+    border:1px solid var(--bd, var(--stroke));
+    color:var(--text);
+    background:
+      linear-gradient(180deg,
+        color-mix(in oklab, var(--bd, var(--stroke)) 22%, transparent),
+        color-mix(in oklab, var(--bd, var(--stroke)) 8%, transparent));
+    box-shadow: 0 1px 0 rgba(255,255,255,.06) inset;
+  }
+
+  /* horizontal % bar */
+  .hbar-wrap{ margin-top:.4rem; }
+  .hbar{ height:10px; border-radius:999px; background:var(--track); overflow:hidden;
+         box-shadow:0 0 0 1px var(--stroke) inset; }
+  .hbar .fill{ height:100%; width:0%; transition:width .6s ease; }
+  .card-tint--exp .hbar .fill{ background: color-mix(in oklab, var(--exp) 82%, white 0%); }
+  .card-tint--imp .hbar .fill{ background: color-mix(in oklab, var(--imp) 82%, white 0%); }
+  .card-tint--not .hbar .fill{ background: color-mix(in oklab, var(--not) 82%, white 0%); }
+
+  /* section header */
+  .section{margin-top:1.5rem}
+  .section .secbar{display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem}
+  .secbar .left{width:6px;height:26px;border-radius:6px;background:var(--exp)}
+  .section.imp .secbar .left{ background: var(--imp); }
+  .section.not .secbar .left{ background: var(--not); }
+
+  .kpi-grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+  .knum{font-size:clamp(1.9rem,3.5vw,2.4rem);font-weight:900}
+  .kcap-row{ display:flex; align-items:center; gap:.5rem; font-weight:700; color:var(--muted); margin-bottom:.35rem; }
+
+  /* ===== SVG Ring ===== */
+  .ring{
+    --size: 64px;
+    --ring-fill: var(--exp);
+    --ring-track: var(--track);
+    --ring-center: var(--card);
+    display:inline-grid; place-items:center;
+    width:var(--size); height:var(--size); position:relative;
+  }
+  .ring svg{ width:var(--size); height:var(--size); display:block; }
+  .ring .track{ fill:none; stroke:var(--ring-track); stroke-width:12; opacity:.35; }
+  .ring .progress{ fill:none; stroke:var(--ring-fill); stroke-width:12;
+                   stroke-linecap:round; transform:rotate(-90deg); transform-origin:50% 50%;
+                   stroke-dasharray:0 999; }
+  .ring .hole{ fill:var(--ring-center); }
+  .ring > span{ position:absolute; inset:0; display:grid; place-items:center;
+                font-weight:800; font-size:.95rem; color:var(--text); pointer-events:none; }
+
+  /* overlay */
+  .top-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none}
+  .top-sheet{
+    position:fixed;right:0;top:0;height:100%;width:min(900px,96%);
+    background:var(--bg1);border-left:1px solid var(--stroke);
+    box-shadow:0 0 40px rgba(0,0,0,.35);
+    display:none;z-index:10000;color:var(--text);
+  }
+  .top-sheet header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--stroke)}
+  .sheet-body{padding:12px 16px;height:calc(100% - 52px);overflow:auto}
+  .tablewrap{border:1px solid var(--stroke);border-radius:12px;overflow:auto}
+  .noscroll{overflow:hidden}
+
+  /* --- CUSTOM TABLE STYLES FOR SHEET (TO MATCH SCREENSHOT) --- */
+  .top-sheet .table {
+    --bs-table-bg: transparent; /* Remove default table background */
+    color: #eef2ff; /* Explicitly set table text color for the body */
+  }
+  .top-sheet .table-hover>tbody>tr:hover>td,
+  .top-sheet .table-hover>tbody>tr:hover>th,
+  .top-sheet .table-hover>tbody>tr:hover {
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.08); /* subtle hover effect */
+  }
+  .top-sheet .table thead tr th {
+    background-color: var(--card); /* Darker background for header */
+    color: #eef2ff; /* Explicitly set header text color to white/light */
+    border-bottom: 1px solid var(--stroke); /* Separator line */
+    position: sticky; /* Keep header visible when scrolling */
+    top: 0;
+    z-index: 1; /* Ensure header is above body */
+    font-weight: 700;
+  }
+  /* The key fix is here: target the actual table data cells with !important to overcome any specificity issues */
+  .top-sheet .table tbody tr td {
+    color: #eef2ff !important; /* Force white font for all cell data */
+    padding: 0.75rem 0.5rem; /* Adjust padding for better look */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Light row separators */
+    font-size: 0.9rem;
+    white-space: nowrap; /* Prevent line breaks in cells */
+  }
+  /* --- END CUSTOM TABLE STYLES --- */
+
+  /* ===== Legend ===== */
+  .legend{margin:1.75rem 0 0}
+  .legend-grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .legend-card{
+    background:linear-gradient(180deg, color-mix(in oklab, var(--card) 92%, transparent), color-mix(in oklab, var(--card) 96%, transparent));
+    border-radius:14px;
+    padding:.9rem 1rem;
+    box-shadow:0 0 0 1px var(--stroke) inset;
+  }
+  .legend-item{display:flex;align-items:center;gap:.6rem;padding:.35rem 0;color:var(--muted);font-weight:700}
+  .dot{width:10px;height:10px;border-radius:50%}
+
+  /* ===== User icons (from /static/icons) ===== */
+  .ic{ width:28px; height:28px; display:inline-block; vertical-align:-2px; }
+  .legend .ic{ width:28px; height:28px; }
+</style>
+
+{# ---------- Jinja Macro to render your icons ---------- #}
+{% macro ic(name, alt='') -%}
+  <img class="ic" src="{{ url_for('static', filename='icons/' ~ name) }}" alt="{{ alt }}" loading="lazy">
+{%- endmacro %}
+
+<div class="wrap">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div>
+      <div class="title">Patentryx &amp; Prion — Dashboard</div>
+      <div class="sub">Live summary of <span class="badge text-bg-info">Mapped_Results</span></div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-none" id="themeToggle" title="theme">🌗</button>
+      <span class="pill">Updated: <span id="now"></span></span>
+    </div>
+  </div>
+
+  <section class="headline-grid">
+    <div class="headline card-surface" data-metric="projects" role="button" tabindex="0" aria-label="Total Number of Projects">
+      <div>
+        <div class="hcap">Total Number of Projects</div>
+        <div class="hnum" data-animate="{{ total_projects|default(0) }}">0</div>
+      </div>
+    </div>
+
+    <div class="headline card-surface" data-metric="patents" id="totalPatentsCard" role="button" tabindex="0" aria-label="Total Number of Patents">
+      <div>
+        <div class="hcap">Total Number of Patents</div>
+        <div class="hnum" id="totalPatents" data-animate="{{ patents_count|default(0) }}">0</div>
+      </div>
+    </div>
+
+    {# ===== Headline: Disclosed Explicitly ===== #}
+    {% set de_no_pct = ((disclosed_explicitly_no or 0) / (disclosed_explicitly_total or 1) * 100) if (disclosed_explicitly_total or 0) > 0 else 0 %}
+    <div class="headline card-surface card-tint--exp" data-metric="disclosed_explicitly_total" role="button" tabindex="0" aria-label="Total Number of Disclosed Explicitly">
+      <div class="w-100">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="hcap">Total Number of Disclosed Explicitly</div>
+            <div class="hnum" data-animate="{{ disclosed_explicitly_total|default(0) }}">0</div>
+          </div>
+          <div class="ring" data-ring
+               data-part="{{ disclosed_explicitly_total|default(0) }}"
+               data-total="{{ patents_count|default(0) }}"
+               data-fill="var(--exp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track"   cx="50" cy="50" r="45"></circle>
+              <circle class="progress"cx="50" cy="50" r="45"></circle>
+              <circle class="hole"    cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-left">
+            {{ic('Not.png','activity')}}
+            
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ de_no_pct|round(2) }}%</span>
+            <span class="count-box">{{ disclosed_explicitly_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ de_no_pct }}%"></div></div></div>
+      </div>
+    </div>
+
+    {# ===== Headline: Disclosed Implicitly ===== #}
+    {% set di_no_pct = ((disclosed_implicitly_no or 0) / (disclosed_implicitly_total or 1) * 100) if (disclosed_implicitly_total or 0) > 0 else 0 %}
+    <div class="headline card-surface card-tint--imp" data-metric="disclosed_implicitly_total" role="button" tabindex="0" aria-label="Total Number of Disclosed Implicitly">
+      <div class="w-100">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="hcap">Total Number of Disclosed Implicitly</div>
+            <div class="hnum" data-animate="{{ disclosed_implicitly_total|default(0) }}">0</div>
+          </div>
+          <div class="ring" data-ring
+               data-part="{{ disclosed_implicitly_total|default(0) }}"
+               data-total="{{ patents_count|default(0) }}"
+               data-fill="var(--imp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track"   cx="50" cy="50" r="45"></circle>
+              <circle class="progress"cx="50" cy="50" r="45"></circle>
+              <circle class="hole"    cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-left">
+           {{ic('Not.png','activity')}}
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ di_no_pct|round(2) }}%</span>
+            <span class="count-box">{{ disclosed_implicitly_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ di_no_pct }}%"></div></div></div>
+      </div>
+    </div>
+
+    {# ===== Headline: Not Disclosed ===== #}
+    {% set nd_no_pct = ((not_disclosed_no or 0) / (not_disclosed_total or 1) * 100) if (not_disclosed_total or 0) > 0 else 0 %}
+    <div class="headline card-surface card-tint--not" data-metric="not_disclosed_total" role="button" tabindex="0" aria-label="Total Number of Not Disclosed">
+      <div class="w-100">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <div class="hcap">Total Number of Not Disclosed</div>
+            <div class="hnum" data-animate="{{ not_disclosed_total|default(0) }}">0</div>
+          </div>
+          <div class="ring" data-ring
+               data-part="{{ not_disclosed_total|default(0) }}"
+               data-total="{{ patents_count|default(0) }}"
+               data-fill="var(--not)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track"   cx="50" cy="50" r="45"></circle>
+              <circle class="progress"cx="50" cy="50" r="45"></circle>
+              <circle class="hole"    cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-left">
+           {{ic('Not.png','activity')}}
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ nd_no_pct|round(2) }}%</span>
+            <span class="count-box">{{ not_disclosed_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ nd_no_pct }}%"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section exp">
+    <div class="secbar"><div class="left"></div><div class="text">Disclosed Explicitly — Rank Filters</div></div>
+    <div class="kpi-grid">
+      {% set de_old_pct = ((de_old_lt_250_no or 0) / (de_old_lt_250 or 1) * 100) if (de_old_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--exp" data-metric="disclosed_explicitly_old_lt_250" role="button" tabindex="0" aria-label="Explicit: Old < 250">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ de_old_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ de_old_lt_250|default(0) }}"
+               data-total="{{ disclosed_explicitly_total|default(0) }}"
+               data-fill="var(--exp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ de_old_pct|round(2) }}%</span>
+            <span class="count-box">{{ de_old_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ de_old_pct }}%"></div></div></div>
+      </div>
+
+      {% set de_new_pct = ((de_new_lt_250_no or 0) / (de_new_lt_250 or 1) * 100) if (de_new_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--exp" data-metric="disclosed_explicitly_new_lt_250" role="button" tabindex="0" aria-label="Explicit: New < 250">
+        <div class="kcap-row">{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ de_new_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ de_new_lt_250|default(0) }}"
+               data-total="{{ disclosed_explicitly_total|default(0) }}"
+               data-fill="var(--exp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ de_new_pct|round(2) }}%</span>
+            <span class="count-box">{{ de_new_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ de_new_pct }}%"></div></div></div>
+      </div>
+
+      {% set de_both_pct = ((de_both_lt_250_no or 0) / (de_both_lt_250 or 1) * 100) if (de_both_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--exp" data-metric="disclosed_explicitly_both_lt_250" role="button" tabindex="0" aria-label="Explicit: AND (Old & New)">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('Intersection.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ de_both_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ de_both_lt_250|default(0) }}"
+               data-total="{{ disclosed_explicitly_total|default(0) }}"
+               data-fill="var(--exp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ de_both_pct|round(2) }}%</span>
+            <span class="count-box">{{ de_both_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ de_both_pct }}%"></div></div></div>
+      </div>
+
+      {% set de_either_pct = ((de_either_lt_250_no or 0) / (de_either_lt_250 or 1) * 100) if (de_either_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--exp" data-metric="disclosed_explicitly_either_lt_250" role="button" tabindex="0" aria-label="Explicit: OR (Old | New)">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('union.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ de_either_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ de_either_lt_250|default(0) }}"
+               data-total="{{ disclosed_explicitly_total|default(0) }}"
+               data-fill="var(--exp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ de_either_pct|round(2) }}%</span>
+            <span class="count-box">{{ de_either_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ de_either_pct }}%"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section imp">
+    <div class="secbar"><div class="left"></div><div class="text">Disclosed Implicitly — Rank Filters</div></div>
+    <div class="kpi-grid">
+      {% set di_old_pct = ((di_old_lt_250_no or 0) / (di_old_lt_250 or 1) * 100) if (di_old_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--imp" data-metric="disclosed_implicitly_old_lt_250" role="button" tabindex="0" aria-label="Implicit: Old < 250">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ di_old_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ di_old_lt_250|default(0) }}"
+               data-total="{{ disclosed_implicitly_total|default(0) }}"
+               data-fill="var(--imp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ di_old_pct|round(2) }}%</span>
+            <span class="count-box">{{ di_old_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ di_old_pct }}%"></div></div></div>
+      </div>
+
+      {% set di_new_pct = ((di_new_lt_250_no or 0) / (di_new_lt_250 or 1) * 100) if (di_new_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--imp" data-metric="disclosed_implicitly_new_lt_250" role="button" tabindex="0" aria-label="Implicit: New < 250">
+        <div class="kcap-row">{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ di_new_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ di_new_lt_250|default(0) }}"
+               data-total="{{ disclosed_implicitly_total|default(0) }}"
+               data-fill="var(--imp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ di_new_pct|round(2) }}%</span>
+            <span class="count-box">{{ di_new_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ di_new_pct }}%"></div></div></div>
+      </div>
+
+      {% set di_both_pct = ((di_both_lt_250_no or 0) / (di_both_lt_250 or 1) * 100) if (di_both_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--imp" data-metric="disclosed_implicitly_both_lt_250" role="button" tabindex="0" aria-label="Implicit: AND (Old & New)">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('Intersection.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ di_both_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ di_both_lt_250|default(0) }}"
+               data-total="{{ disclosed_implicitly_total|default(0) }}"
+               data-fill="var(--imp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ di_both_pct|round(2) }}%</span>
+            <span class="count-box">{{ di_both_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ di_both_pct }}%"></div></div></div>
+      </div>
+
+      {% set di_either_pct = ((di_either_lt_250_no or 0) / (di_either_lt_250 or 1) * 100) if (di_either_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--imp" data-metric="disclosed_implicitly_either_lt_250" role="button" tabindex="0" aria-label="Implicit: OR (Old | New)">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('union.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ di_either_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ di_either_lt_250|default(0) }}"
+               data-total="{{ disclosed_implicitly_total|default(0) }}"
+               data-fill="var(--imp)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ di_either_pct|round(2) }}%</span>
+            <span class="count-box">{{ di_either_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ di_either_pct }}%"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section not">
+    <div class="secbar"><div class="left"></div><div class="text">Not Disclosed — Rank Filters</div></div>
+    <div class="kpi-grid">
+      {% set nd_old_pct = ((nd_old_lt_250_no or 0) / (nd_old_lt_250 or 1) * 100) if (nd_old_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--not" data-metric="not_disclosed_old_lt_250" role="button" tabindex="0" aria-label="Not Disclosed: Old < 250">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ nd_old_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ nd_old_lt_250|default(0) }}"
+               data-total="{{ not_disclosed_total|default(0) }}"
+               data-fill="var(--not)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ nd_old_pct|round(2) }}%</span>
+            <span class="count-box">{{ nd_old_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ nd_old_pct }}%"></div></div></div>
+      </div>
+
+      {% set nd_new_pct = ((nd_new_lt_250_no or 0) / (nd_new_lt_250 or 1) * 100) if (nd_new_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--not" data-metric="not_disclosed_new_lt_250" role="button" tabindex="0" aria-label="Not Disclosed: New < 250">
+        <div class="kcap-row">{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ nd_new_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ nd_new_lt_250|default(0) }}"
+               data-total="{{ not_disclosed_total|default(0) }}"
+               data-fill="var(--not)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ nd_new_pct|round(2) }}%</span>
+            <span class="count-box">{{ nd_new_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ nd_new_pct }}%"></div></div></div>
+      </div>
+
+      {% set nd_both_pct = ((nd_both_lt_250_no or 0) / (nd_both_lt_250 or 1) * 100) if (nd_both_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--not" data-metric="not_disclosed_both_lt_250" role="button" tabindex="0" aria-label="Not Disclosed: AND (Old & New)">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('Intersection.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ nd_both_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ nd_both_lt_250|default(0) }}"
+               data-total="{{ not_disclosed_total|default(0) }}"
+               data-fill="var(--not)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ nd_both_pct|round(2) }}%</span>
+            <span class="count-box">{{ nd_both_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ nd_both_pct }}%"></div></div></div>
+      </div>
+
+      {% set nd_either_pct = ((nd_either_lt_250_no or 0) / (nd_either_lt_250 or 1) * 100) if (nd_either_lt_250 or 0) > 0 else 0 %}
+      <div class="kcard card-surface card-tint--not" data-metric="not_disclosed_either_lt_250" role="button" tabindex="0" aria-label="Not Disclosed: OR (Old | New)">
+        <div class="kcap-row">{{ic('Patentryx.png','activity')}}{{ic('union.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<div></div></div>
+        <div class="d-flex align-items-center justify-content-between">
+          <div><div class="knum">{{ nd_either_lt_250|default(0) }}</div></div>
+          <div class="ring" data-ring
+               data-part="{{ nd_either_lt_250|default(0) }}"
+               data-total="{{ not_disclosed_total|default(0) }}"
+               data-fill="var(--not)">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+              <circle class="hole" cx="50" cy="50" r="38"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-left">{{ic('Not.png','activity')}}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="pct">{{ nd_either_pct|round(2) }}%</span>
+            <span class="count-box">{{ nd_either_lt_250_no|default(0) }}</span>
+          </div>
+        </div>
+        <div class="hbar-wrap"><div class="hbar"><div class="fill" style="width: {{ nd_either_pct }}%"></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="legend">
+    <div class="secbar"><div class="left" style="background:linear-gradient(90deg,var(--exp),var(--imp),var(--not))"></div><div class="text">Legend</div></div>
+    <div class="legend-grid">
+      <div class="legend-card">
+        <div class="legend-item"><span class="dot" style="background:var(--exp)"></span> <span>Disclosed Explicitly</span></div>
+        <div class="legend-item"><span class="dot" style="background:var(--imp)"></span> <span>Disclosed Implicitly</span></div>
+        <div class="legend-item"><span class="dot" style="background:var(--not)"></span> <span>Not Disclosed </span></div>
+        <div class="legend-item">{{ ic('bar.png','activity') }} <span> Disclosed Rank % Not in Intial * 100</span></div>
+        <div class="legend-item">{{ ic('ring.png','activity') }} <span>Number of Patents % Disclosed * 100</span></div>
+      </div>
+
+      <div class="legend-card">
+        <div class="legend-item">{{ic('Patentryx.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}} <span>Patentryx Lessthan 250 Ranked</span></div>
+        <div class="legend-item">{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}} <span>Prion Lessthan 250 Ranked</span></div>
+        <div class="legend-item">{{ic('Patentryx.png','activity')}}{{ic('Intersection.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<span>Patentryx AND Prion Lessthan 250 Ranked</span></div>
+        <div class="legend-item">{{ic('Patentryx.png','activity')}}{{ic('union.png','activity')}}{{ic('Prion.png','activity')}}{{ic('less.png','activity')}}{{ic('250.png','activity')}}<span>Patentryx OR Prion Lessthan 250 Ranked</span></div>
+      </div>
+
+      <div class="legend-card">
+        <div class="legend-item">{{ ic('Not.png','activity') }} <span>Not in Initial Dataset</span></div>
+        <div class="legend-item">{{ ic('Patentryx.png','activity') }} <span>Patentryx Logic</span></div>
+        <div class="legend-item">{{ ic('Prion.png','activity') }} <span>Prion Algorithm</span></div>
+        <div class="legend-item">{{ ic('less.png','activity') }} <span>Lessthan</span></div>
+        <div class="legend-item">{{ ic('Intersection.png','activity') }} <span>Intersection (AND)</span></div>
+        <div class="legend-item">{{ ic('union.png','activity') }} <span>union (OR)</span></div>
+        
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="top-sheet-backdrop" id="sheetBackdrop"></div>
+<div class="top-sheet" id="topSheet">
+  <header>
+    <h5 id="sheetTitle" class="mb-0">Details</h5>
+    <button class="btn btn-sm btn-outline-none" id="closeSheet" type="button">Close</button>
+  </header>
+  <div class="sheet-body">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <div id="sheetCount" class="sub"></div>
+    </div>
+    <div class="tablewrap">
+      <table class="table table-sm table-hover table-borderless mb-0" id="dataTable"></table>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // timestamp
+  function fmtNow(){const d=new Date();const p=n=>String(n).padStart(2,"0");
+    return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;}
+  const nowEl=document.getElementById("now"); nowEl.textContent=fmtNow(); setInterval(()=>nowEl.textContent=fmtNow(),1000);
+
+  // theme toggle + persist
+  const root=document.documentElement, btn=document.getElementById("themeToggle");
+  const saved=localStorage.getItem("theme")||"dark";
+  if(saved==="light"){root.classList.add("theme-light");btn.textContent="🌞 Theme";}
+  btn.addEventListener("click",()=>{root.classList.toggle("theme-light");
+    const isLight=root.classList.contains("theme-light");btn.textContent=isLight?"🌞":"🌗";
+    localStorage.setItem("theme", isLight?"light":"dark");});
+
+  // animate numbers
+  document.querySelectorAll('[data-animate]').forEach(el=>{
+    const end=+el.getAttribute('data-animate')||0, dur=900, t0=performance.now();
+    (function tick(t){const p=Math.min((t-t0)/dur,1); el.textContent=Math.round(end*p).toLocaleString(); if(p<1)requestAnimationFrame(tick)})(t0);
+  });
+
+  // % helpers + SVG rings
+  function fmtPct(part,total){
+    part = Number(part)||0; total = Number(total)||0;
+    if(total<=0) return "0%";
+    const v = (part/total)*100;
+    return v>0 && v<1 ? "<1%" : (Math.round(v*10)/10) + "%";
+  }
+
+  // circumference for r=45
+  const CIRC = 2 * Math.PI * 45;
+
+  document.querySelectorAll('[data-ring]').forEach(el=>{
+    const part  = Number(el.getAttribute('data-part'))  || 0;
+    const total = Number(el.getAttribute('data-total')) || 0;
+    const fill  = el.getAttribute('data-fill') || 'var(--exp)';
+    const val   = total>0 ? Math.max(0, Math.min(100, (part/total)*100)) : 0;
+
+    el.style.setProperty('--ring-fill', fill);
+    const prog = el.querySelector('.progress');
+    if(prog){ prog.style.strokeDasharray = `${(val/100)*CIRC} ${CIRC}`; }
+    const label = el.querySelector('[data-pct]');
+    if(label) label.textContent = fmtPct(part,total);
+  });
+
+  // animate horizontal bars on load
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.hbar .fill').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0%';
+      void el.offsetWidth;
+      el.style.width = w;
+    });
+  });
+
+  // overlay helpers
+  const backdrop=document.getElementById('sheetBackdrop'),
+        sheet=document.getElementById('topSheet'),
+        dataTable=document.getElementById('dataTable'),
+        sheetTitle=document.getElementById('sheetTitle'),
+        sheetCount=document.getElementById('sheetCount');
+  function openSheet(){sheet.style.display='block';backdrop.style.display='block';document.body.classList.add('noscroll')}
+  function closeSheet(){sheet.style.display='none';backdrop.style.display='none';dataTable.innerHTML='';document.body.classList.remove('noscroll')}
+  document.getElementById('closeSheet').addEventListener('click', closeSheet);
+  backdrop.addEventListener('click', closeSheet);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape') closeSheet()});
+
+  function renderTable(cols,rows){
+    const thead='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
+    const body=rows.map(r=>'<tr>'+cols.map(c=>`<td>${(r[c]??'').toString()}</td>`).join('')+'</tr>').join('');
+    dataTable.innerHTML=thead+'<tbody>'+body+'</tbody>';
+  }
+  async function fetchAndShow(metric,title){
+    try{
+      const res=await fetch(`/rating_data?metric=${encodeURIComponent(metric)}`);
+      const data=await res.json();
+      if(data.error) throw new Error(data.error);
+      sheetTitle.textContent=title || metric;
+      sheetCount.textContent=`Count: ${(data.count||0).toLocaleString()}`;
+      renderTable(data.columns,data.rows);
+      openSheet();
+    }catch(err){ alert('Failed to load data: '+err.message); }
+  }
+
+  // clicks + keyboard (Enter/Space) to open table
+  document.querySelectorAll('[data-metric]').forEach(el=>{
+    const title=el.querySelector('.hcap,.kcap-row,.text')?.textContent?.trim() || 'Details';
+    el.addEventListener('click',()=>fetchAndShow(el.getAttribute('data-metric'),title));
+    el.addEventListener('keydown',(e)=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fetchAndShow(el.getAttribute('data-metric'),title);} });
+  });
+</script>

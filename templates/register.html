@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-image: url('/static/ano.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 25px 20px;
+      border-radius: 16px;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 20px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+
+    form {
+      margin-top: 10px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+      text-align: left;
+      color: #fff;
+    }
+
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 12px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.85);
+      color: #333;
+    }
+
+    input[type="submit"] {
+      background: #ffcc00;
+      color: #000;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background: #b3ff00;
+    }
+
+    #loading {
+      margin-top: 10px;
+      font-size: 13px;
+      display: none;
+      color: #fff;
+    }
+  </style>
+
+  <script>
+    function showLoading() {
+      document.getElementById("loading").style.display = "block";
+    }
+
+    // Show error popup if Flask passes 'error'
+    window.onload = function() {
+      {% if error %}
+        alert("{{ error }}");
+      {% endif %}
+    };
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>Register</h1>
+    <form method="POST" action="/register" onsubmit="showLoading()">
+      <label for="username">Username:</label>
+      <input type="text" id="username" name="username" required>
+
+      <label for="email">Email:</label>
+      <input type="text" id="email" name="email" required>
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required>
+
+      <label for="confirm_password">Re-enter Password:</label>
+      <input type="password" name="confirm_password" id="confirm_password" required>
+
+      <input type="submit" value="Register">
+      <div id="loading">⏳ Registering... Please wait</div>
+    </form>
+  </div>
+</body>
+</html>

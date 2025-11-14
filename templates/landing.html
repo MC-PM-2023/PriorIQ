@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .footer {
+    position:fixed; bottom:0; left:0; width:100%; height:60px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; color:#5e5e5e; z-index:1000;
+
+  }
+  .footer p{ margin:0; font-weight:500; letter-spacing:.5px; }
+
+  .edge-toggle{ display:none !important; }
+  :root { --brand:#8b79f0; }
+
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#080A0E; }
+  header, .navbar, .topbar { position:relative; z-index:10; }
+
+  .welcome-page{
+    position:fixed; inset:0; z-index:0;
+    display:grid; place-items:center; text-align:left;
+    padding:max(env(safe-area-inset-top),0) max(env(safe-area-inset-right),0)
+            max(env(safe-area-inset-bottom),0) max(env(safe-area-inset-left),0);
+  }
+  .welcome-bg{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; object-position:center; user-select:none; pointer-events:none;
+  }
+
+  .welcome-content{
+    position:relative; z-index:1; padding:0 20px; animation:fadeUp .6s ease-out;
+    display:grid; grid-template-columns:260px minmax(300px, 560px); /* updated to match small image */
+    align-items:center; gap:48px;
+  }
+
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(12px)} to{opacity:1; transform:none} }
+
+  /* ✅ Updated smaller profile image */
+  .profile-card{
+    width:260px;   /* reduced size */
+    height:330px;  /* reduced size */
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 12px 32px rgba(0,0,0,.35);
+    background:rgba(255,255,255,.06);
+    backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.18);
+  }
+  .profile-photo{
+    width:100%; height:100%; display:block; object-fit:cover; object-position:center;
+  }
+
+  .welcome-right h1{
+    color:var(--brand);
+    font-size:clamp(2rem, 3vw + 1rem, 2.8rem);
+    font-weight:800; margin:0 0 .5rem; text-shadow:0 1px 2px rgba(0,0,0,.35);
+  }
+  .welcome-right p{
+    color:#fe0a0a; margin:0 0 26px; text-shadow:0 1px 2px rgba(0,0,0,.25);
+  }
+
+  .dashboard-btn{
+    background:var(--brand); color:#111; font-weight:700; border:none; border-radius:12px;
+    padding:14px 34px; font-size:1.05rem; cursor:pointer;
+    transition:transform .12s ease, box-shadow .18s ease, background .18s;
+    box-shadow:0 6px 20px rgba(139,121,240,.28);
+  }
+  .dashboard-btn:hover{ transform:translateY(-1px); background:#9c90df; }
+  .dashboard-btn:active{ transform:none; box-shadow:0 3px 12px rgba(139,121,240,.22); }
+
+  @media (max-width:900px){
+    .welcome-content{ grid-template-columns:1fr; gap:20px; text-align:center; justify-items:center; }
+    .welcome-right h1, .welcome-right p{ text-align:center; }
+  }
+</style>
+
+<div class="welcome-page">
+  <!-- Background -->
+  <img class="welcome-bg" src="https://storage.googleapis.com/my-react-image-bucket-123/Background36.jpg" alt="Welcome background"/>
+
+  <div class="welcome-content">
+    <!-- LEFT: profile image -->
+    <div class="profile-card">
+      {% set display_email = user_email or session.get('email') %}
+      {% set display_name  = profile_name or session.get('username') or display_email or 'User' %}
+      <img
+        class="profile-photo"
+        src="{{
+              profile_image_url
+              or (gravatar_url(display_email, 460) if display_email else None)
+              or url_for('static', filename='avatar-default.png')
+            }}"
+        alt="{{ display_name }}'s photo">
+    </div>
+
+    <!-- RIGHT: text & button -->
+    <div class="welcome-right">
+      <h1>Welcome, {{ display_name }}!</h1>
+      <p>You have successfully logged in. Click below to go to your Dashboard.</p>
+      <form action="{{ url_for('landing') }}" method="get" style="margin:0;">
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <p>© 2025 Datasolve Analytics — All Rights Reserved</p>
+</footer>
+
+{% endblock %}
