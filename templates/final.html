@@ -156,7 +156,7 @@
       <div class="fc-stack">
         <!-- FORM -->
         <section class="fc-panel">
-          <form id="final-ranking-form" method="post" action="/final" enctype="multipart/form-data">
+          <form id="final-ranking-form" method="post" action="/final-dataset" enctype="multipart/form-data">
 
             <!-- Project Code + Analyst (2 columns) -->
             <div class="fc-row-2col">
@@ -513,7 +513,7 @@
 
         try{
           const fd = new FormData(form);
-          const res = await fetch('/final', {
+          const res = await fetch('/final-dataset', {
             method: 'POST',
             body: fd,
             headers: {

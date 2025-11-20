@@ -274,13 +274,13 @@ def login_required(f):
     def decorated_function(*args, **kwargs):
         if 'username' not in session:
             flash("Please log in first.")
-            return redirect('/login')
+            return redirect('/sign-in')
         return f(*args, **kwargs)
     return decorated_function
 
 @app.route('/')
 def home():
-    return redirect('/login')
+    return redirect('/sign-in')
 
 
 
@@ -440,7 +440,7 @@ def admin_required(view_func):
     return wrapper
 
 
-@app.route('/login', methods=['GET', 'POST'])
+@app.route('/sign-in', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
@@ -464,7 +464,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('/login')
+    return redirect('/sign-in')
 
 
 
@@ -520,7 +520,7 @@ def landing():
 
 #_____________________________________________________________________________________________________________
 
-@app.route('/initial', methods=['GET'])
+@app.route('/initial-dataset', methods=['GET'])
 def page_a():
     return render_template("initial.html")
 
@@ -1006,7 +1006,7 @@ def _parse_dispatch_date(s: str) -> str:
     raise ValueError("Invalid date format. Use MM/DD/YYYY.")
 
 # --------------- Route -------------------
-@app.route('/final', methods=['GET', 'POST'])
+@app.route('/final-dataset', methods=['GET', 'POST'])
 def page_b():
     # who is logged in (from session)
     session_username = session.get('user_name', 'Anonymous')
@@ -1537,7 +1537,7 @@ def download_file(filename):
 
 #_____________________________________________________________________________________________________
 
-@app.route('/search', methods=['GET', 'POST'])
+@app.route('/mapped-results', methods=['GET', 'POST'])
 def page_c():
     try:
        
@@ -2516,7 +2516,7 @@ def result_data():
 
 #_______________________________________________________________________________________________________________________________
 
-@app.route("/logs", methods=["GET"])
+@app.route("/log", methods=["GET"])
 @login_required
 @admin_required
 def logs():
@@ -2977,6 +2977,16 @@ def overall_analysts():
         """), {"sd": (q_start or None), "ed": (q_end or None)}).scalars().all()
 
     return jsonify({"analysts": rows})
+
+
+
+
+# ========== OVERALL PAGES (Dashboard / Rating / Result) ==========
+
+
+
+
+
 
 
 # @app.route('/c')

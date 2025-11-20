@@ -1,56 +1,65 @@
-# -----------------------------
+# -------------------------
 # Python
-# -----------------------------
+# -------------------------
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.pkl
+*.pyd
+*.egg-info/
+*.egg
+*.log
+
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Byte-compiled / optimized files
 *.pyc
 *.pyo
 *.pyd
-*.egg-info/
-*.log
 
-# -----------------------------
-# Virtual environment
-# -----------------------------
-.venv/
-venv/
-ENV/
-env/
+# -------------------------
+# Flask / App Build
+# -------------------------
+instance/
+*.sqlite3
+*.db
+*.db-journal
 
-# -----------------------------
-# OS / Editor
-# -----------------------------
+# Ignore secrets
+*.env
+.env
+.env.*
+
+# -------------------------
+# VS Code
+# -------------------------
+.vscode/
+.history/
+
+# -------------------------
+# OS Files
+# -------------------------
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
 
-# -----------------------------
-# Flask temp / runtime files
-# -----------------------------
-instance/
-tmp/
-tmp_final_outputs/
-*.db
-*.sqlite3
+# -------------------------
+# Cache
+# -------------------------
+.cache/
+.pytest_cache/
+.ipynb_checkpoints/
 
-# -----------------------------
-# Project-specific unwanted files
-# -----------------------------
-# Ignore all zip files in root
-*.zip
-
-# Ignore specific temp / old apps
-app1.py
-app_withoutlog.py
-appp.py
-apppp.py
-test.py
-
-# If you want to keep ONLY app.py → ignore all other app*.py
-app*.py
-!app.py
-
-# -----------------------------
-# Static build output (if any)
-# -----------------------------
-static1/
+# -------------------------
+# Project Specific
+# -------------------------
+# Ignore compiled model files or large data
+models/
+*.model
+*.h5
+*.pt
