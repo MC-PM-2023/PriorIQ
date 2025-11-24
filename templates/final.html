@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}
+PriorIQ - Final Dataset
+{% endblock %}
+
+{% block content %}
+
+<style>
+  :root{
+    --header-h: 40px;
+    --sidebar-w: 200px;
+  }
+  html, body{ height:100%; margin:0; overflow-x:hidden; overflow-y:auto; overscroll-behavior:none; }
+  .main{ overflow-x:hidden; }
+  .content{ padding:0 !important; min-height:calc(100dvh - var(--header-h)) !important; position:relative; overflow-x:hidden !important; }
+
+  /* Background video */
+  .fc-bg{ position:fixed; top:var(--header-h); left:0; right:0; bottom:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .fc-bg video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center; filter:brightness(.9) contrast(1.08) saturate(1.05); }
+  .fc-bg .veil{ position:absolute; inset:0;
+    background: radial-gradient(1200px 600px at 80% 20%, rgba(124,77,255,.15), transparent 55%),
+               radial-gradient(1000px 500px at 20% 80%, rgba(0,229,255,.12), transparent 60%);
+  }
+
+  .final-content{ position:relative; z-index:2; padding-bottom:64px; }
+  .fc-shell{ padding:12px; display:grid; place-items:center; }
+
+  .fc-card{
+    width:min(1100px, calc(100vw - var(--sidebar-w) - 72px));
+    margin:24px auto; background:rgba(9,14,26,.66);
+    border:1px solid rgba(90,255,255,.16); border-radius:18px; backdrop-filter:blur(8px);
+    box-shadow:0 16px 44px rgba(0,0,0,.48); padding:16px; animation:cardIn .25s ease both;
+  }
+  @keyframes cardIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+
+  .fc-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:4px 4px 10px; }
+  .fc-title{ display:flex; align-items:center; gap:8px; font-weight:900; letter-spacing:.3px; color:#dff9ff; font-size:18px; }
+  .fc-dot{ width:10px; height:10px; border-radius:50%; background:linear-gradient(135deg,#00e5ff,#7c4dff); box-shadow:0 0 16px rgba(0,229,255,.55) }
+  .badges{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .chip{ display:inline-flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:#d9f6ff; padding:5px 8px; border-radius:999px;
+    background:rgba(255,255,255,.04); border:1px solid rgba(0,229,255,.22); box-shadow:0 0 0 1px rgba(124,77,255,.10) inset; letter-spacing:.2px; }
+  .chip-icon{ width:20px; height:20px; filter:drop-shadow(0 0 5px rgba(0,229,255,.4)); object-fit:contain; }
+
+  .fc-stack{ display:grid; gap:14px; }
+  .fc-panel{ background:rgba(0,0,0,.3); border:1px solid rgba(0,255,255,.12); border-radius:16px; padding:16px 16px 14px; }
+
+  .fc-row-1col{ display:grid; grid-template-columns:1fr; gap:12px; }
+  .fc-row-2col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:stretch; }
+  @media (max-width: 820px){ .fc-row-2col{ grid-template-columns:1fr; } }
+
+  .fc-label{ font-size:12px; color:#79bfd0; margin:0 0 6px 0; display:block; }
+  .fc-control{
+    width:98%; background:rgba(0,0,0,.45); color:#dff9ff;
+    border:1px solid rgba(0,229,255,.18); border-radius:12px;
+    padding:8px 10px; font-size:13px; outline:none;
+    transition: box-shadow .2s, border-color .2s, background .2s;
+  }
+  .fc-control:hover{ background:rgba(0,0,0,.53); }
+  .fc-control:focus-visible{ box-shadow:0 0 0 3px rgba(0,229,255,.24); border-color:rgba(124,77,255,.5); }
+  textarea.fc-control{ min-height:80px; line-height:1.45; resize:vertical; }
+
+  .fc-drop{ min-height:60px; border:1px dashed rgba(0,229,255,.25); background:rgba(0,0,0,.35);
+    border-radius:14px; padding:10px; display:grid; gap:8px; align-content:start; transition:border-color .2s, background .2s, transform .12s; cursor:pointer; }
+  .fc-drop:focus-within{ border-color:rgba(124,77,255,.6); box-shadow:0 0 0 3px rgba(0,229,255,.18); }
+  .fc-drop.fc-drag{ background:rgba(0,229,255,.08); border-color:rgba(124,77,255,.6); transform:translateY(-1px); }
+
+  .fc-file-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .fc-hint{ font-size:12px; color:#9fd5e4; }
+  .fc-btn-file{ padding:8px 12px; border-radius:10px; border:1px solid rgba(124,77,255,.45);
+    background:linear-gradient(135deg, rgba(0,229,255,.18), rgba(124,77,255,.18)); color:#fff; font-weight:800; cursor:pointer; font-size:12px; }
+  .fc-fname{ font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#ff6b6b; font-weight:700; }
+  .fc-fname.ok{ color:#4CFF9E; }
+  input[type=file]{ display:none; }
+
+  .fc-cta{ display:flex; justify-content:center; margin-top:12px; }
+  .fc-btn{ padding:12px 16px; border-radius:12px; border:1px solid rgba(0,229,255,.28);
+    background:linear-gradient(135deg, rgba(0,229,255,.16), rgba(124,77,255,.16)); color:#fff; font-weight:900; cursor:pointer; letter-spacing:.2px;
+    transition:transform .12s, box-shadow .2s, filter .2s; }
+  .fc-btn:hover{ transform:translateY(-1px); box-shadow:0 0 16px rgba(0,229,255,.35); }
+  .fc-btn:active{ transform:translateY(0); filter:brightness(.98); }
+  .fc-primary{ background:linear-gradient(135deg, #00c6ff, #7c4dff); }
+
+  .fc-out-head{ display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .fc-out-head .fc-h3{ margin:0; margin-right:auto; font-size:16px; font-weight:900; color:#dff9ff; }
+  .fc-tag{ font-size:11px; font-weight:800; color:#9ef3ff; border:1px solid rgba(0,229,255,.28); padding:4px 8px; border-radius:999px; background:rgba(0,229,255,.06) }
+  .fc-tag.fc-wait{ color:#ffd699; border-color:rgba(255,183,77,.35); background:rgba(255,183,77,.1) }
+  .fc-muted{ color:#9fd5e4; margin:6px 0 0; }
+
+  .fc-outbox{ overflow:auto; max-height:58vh; border-radius:12px; background:rgba(0,0,0,.25); border:1px solid rgba(0,229,255,.12); padding:0; }
+  .fc-table-wrap{ width:100%; min-width:unset; }
+  .fc-outbox table{ width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed; }
+  .fc-outbox th, .fc-outbox td{ padding:10px; border:1px solid rgba(0,229,255,.18); text-align:center; color:#e9fcff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .fc-outbox th{ background:rgba(0,229,255,.12); color:#bff8ff; position:sticky; top:0; z-index:1; }
+
+  .fc-overlay{ position:fixed; inset:0; display:none; place-items:center; z-index:9999; background:rgba(0,0,0,.6); backdrop-filter:blur(6px); }
+  .fc-run-card{ width:min(380px, 92vw); padding:16px; border-radius:18px; background:rgba(10,16,28,.92);
+    border:1px solid rgba(0,229,255,.22); box-shadow:0 18px 44px rgba(0,0,0,.65); display:grid; gap:14px; justify-items:center; }
+  .fc-round{ position:relative; width:180px; height:180px; border-radius:50%; display:grid; place-items:center;
+    background:radial-gradient(140px 140px at 50% 45%, rgba(124,77,255,.12), rgba(0,229,255,.08));
+    box-shadow:0 0 0 1px rgba(0,229,255,.25) inset, 0 12px 28px rgba(0,0,0,.45); }
+  .fc-ring{ position:absolute; inset:-6px; border-radius:50%; background:conic-gradient(from 0deg, rgba(0,229,255,.95), rgba(124,77,255,.95), rgba(0,229,255,.95));
+    -webkit-mask:radial-gradient(circle 96px at 50% 50%, transparent 84px, #000 85px); mask:radial-gradient(circle 96px at 50% 50%, transparent 84px, #000 85px);
+    filter:blur(.6px); animation: fc-spin 1.1s linear infinite; }
+  @keyframes fc-spin{ to{ transform: rotate(360deg);} }
+  .fc-glow{ position:absolute; inset:8px; border-radius:50%; background:radial-gradient(closest-side, rgba(0,229,255,.22), transparent 70%); filter:blur(2px); }
+  .fc-run-gif{ width:150px; height:150px; border-radius:50%; object-fit:cover; background:#0a0f18; box-shadow:0 0 0 2px rgba(255,255,255,.05) inset; }
+  .fc-rt{ font-weight:900; letter-spacing:.3px; color:#dff9ff; }
+  .fc-dots{ display:inline-block; width:1.6ch; overflow:hidden; vertical-align:bottom; animation: fc-dots 1.2s steps(4,end) infinite; }
+  @keyframes fc-dots{ 0%{width:0} 33%{width:.6ch} 66%{width:1.2ch} 100%{width:1.6ch} }
+  .fc-timer{ font-weight:900; color:#7cf1ff; }
+  .fc-bar{ position:relative; width:100%; height:8px; border-radius:999px; overflow:hidden; background:rgba(255,255,255,.06); border:1px solid rgba(0,229,255,.18); }
+  .fc-bar::before{ content:""; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(0,229,255,.6), transparent);
+    transform:translateX(-100%); animation: fc-shimmer 1.2s linear infinite; }
+  @media (prefers-reduced-motion: reduce){ .fc-ring, .fc-dots, .fc-bar::before { animation: none !important; } }
+
+  .fc-footer{ position:fixed; left:0; right:0; bottom:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:10px 14px;
+    padding-bottom:calc(10px + env(safe-area-inset-bottom)); background:linear-gradient(180deg, rgba(6,10,18,0.05), rgba(6,10,18,0.58));
+    border-top:1px solid rgba(0,229,255,.14); backdrop-filter:blur(8px); color:#cfefff; font-size:12px; letter-spacing:.3px; font-weight:800; }
+
+  /* Modals */
+  .fc-modal-overlay{ position:fixed; inset:0; z-index:10000; display:none; place-items:center; background:rgba(0,0,0,.55); backdrop-filter:blur(6px); }
+  .fc-modal-overlay.show{ display:grid; }
+  .fc-modal{ width:min(520px, 94vw); background:rgba(10,16,28,.98); border:1px solid rgba(255,86,86,.35); border-radius:18px; padding:16px; box-shadow:0 18px 44px rgba(0,0,0,.6); }
+  .fc-modal-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .fc-xmark{ width:28px; height:28px; border-radius:50%;
+    background: radial-gradient(circle at 50% 50%, rgba(255,0,0,.2), transparent 60%),
+               conic-gradient(from 45deg, #ff6b6b 0 25%, transparent 0 50%, #ff6b6b 0 75%, transparent 0);
+    mask: radial-gradient(circle, #0000 56%, #000 57%); box-shadow:0 0 16px rgba(255,0,0,.35);
+  }
+  .fc-modal-body{ color:#ffecec; line-height:1.45; }
+  .fc-modal-footer{ display:flex; justify-content:flex-end; margin-top:14px; }
+</style>
+
+<!-- Background video -->
+<div class="fc-bg" aria-hidden="true">
+  <video autoplay muted loop playsinline>
+    <source src="{{ url_for('static', filename='vv.mp4') }}" type="video/mp4">
+  </video>
+  <div class="veil"></div>
+</div>
+
+<div class="final-content">
+  <div class="fc-shell">
+    <div class="fc-card">
+      <div class="fc-head">
+        <div class="fc-title"><span class="fc-dot"></span> Final Patent Relevance Ranking</div>
+        <div class="badges">
+          <span class="chip">
+            <img src="{{ url_for('static', filename='Patentryx_logo.png') }}" class="chip-icon" alt="Algorithm"><b>Semantics</b>
+          </span>
+          <span class="chip">
+            <img src="{{ url_for('static', filename='Prion_logo.png') }}" class="chip-icon" alt="Model"><b>Model</b>
+          </span>
+          <span class="chip">
+            <img src="{{ url_for('static', filename='Not.png') }}" class="chip-icon" alt="Mapped"><b>Mapped</b>
+          </span>
+        </div>
+      </div>
+
+      <div class="fc-stack">
+        <!-- FORM -->
+        <section class="fc-panel">
+          <form id="final-ranking-form" method="post" action="/final-dataset" enctype="multipart/form-data">
+
+            <!-- Project Code + Analyst (2 columns) -->
+            <div class="fc-row-2col">
+              <div>
+                <label class="fc-label" for="project_code">Project Code</label>
+                <input class="fc-control" type="text" id="project_code" name="project_code" readonly required placeholder="Auto from filename">
+              </div>
+
+              <div>
+                <label class="fc-label" for="analyst">Analyst</label>
+                {% if can_pick_analyst %}
+                  <select class="fc-control" id="analyst" name="analyst" required>
+                    {% for a in analysts or [] %}
+                      <option value="{{ a }}" {% if a == (selected_analyst or '') %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                  </select>
+                {% else %}
+                  <input class="fc-control" type="text" id="analyst_ro" value="{{ selected_analyst or '' }}" readonly>
+                  <input type="hidden" name="analyst" id="analyst" value="{{ selected_analyst or '' }}">
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Initial / Final files -->
+            <div class="fc-row-2col">
+              <div class="fc-drop" id="drop-initial" tabindex="0">
+                <div class="fc-file-head">
+                  <label class="fc-label">Initial Dataset (.xlsx)</label>
+                  <label for="initial_file" class="fc-btn-file">Choose File</label>
+                </div>
+                <input type="file" name="initial_file" id="initial_file" accept=".xlsx" required>
+                <div class="fc-hint">Drag & drop or click</div>
+                <div class="fc-fname" id="fname-initial">No file selected</div>
+              </div>
+
+              <div class="fc-drop" id="drop-final" tabindex="0">
+                <div class="fc-file-head">
+                  <label class="fc-label">Final Dataset (.xlsx)</label>
+                  <label for="final_file" class="fc-btn-file">Choose File</label>
+                </div>
+                <input type="file" name="final_file" id="final_file" accept=".xlsx" required>
+                <div class="fc-hint">Drag & drop or click</div>
+                <div class="fc-fname" id="fname-final">No file selected</div>
+              </div>
+            </div>
+
+            <!-- Dispatch Date -->
+            <div class="fc-row-1col">
+              <div>
+                <label class="fc-label" for="dispatch_date">Dispatch Date</label>
+                <input
+                  class="fc-control"
+                  type="date"
+                  id="dispatch_date"
+                  name="dispatch_date"
+                  required
+                  inputmode="none"
+                  autocomplete="off"
+                  onkeydown="return false"
+                  onpaste="return false"
+                  aria-describedby="dispatch_hint">
+                <small id="dispatch_hint" class="fc-hint">Pick from the calendar</small>
+              </div>
+            </div>
+
+            <!-- Abstract -->
+            <div class="fc-row-1col">
+              <div>
+                <label class="fc-label" for="abstract">Abstract</label>
+                <textarea class="fc-control" name="abstract" id="abstract" placeholder="Paste abstract here…" required></textarea>
+              </div>
+            </div>
+
+            <div class="fc-cta">
+              <button type="submit" class="fc-btn fc-primary">EXECUTE</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- OUTPUT -->
+        <section class="fc-panel">
+          <div class="fc-out-head">
+            <h3 class="fc-h3">Output</h3>
+            {% if final_table %}
+              <span class="fc-tag">Ready</span>
+            {% else %}
+              <span class="fc-tag fc-wait">Waiting</span>
+            {% endif %}
+          </div>
+
+          {% if final_table %}
+            <div class="fc-outbox">
+              <div class="fc-table-wrap">
+                {{ final_table|safe }}
+              </div>
+            </div>
+            <div class="fc-btnbar" style="display:flex; gap:12px; justify-content:flex-end; margin-top:12px; flex-wrap:wrap;">
+              {% if download_token %}
+                <form action="/download/{{ download_token }}" method="get">
+                  <button class="fc-btn">
+                    <img src="{{ url_for('static', filename='dd.png') }}" alt="download" style="width:28px; height:28px; margin-right:6px; vertical-align:middle;">
+                    Download
+                  </button>
+                </form>
+
+                <button class="fc-btn" id="btnPushToDB" type="button">
+                  <img src="{{ url_for('static', filename='upload_icon.png') }}" alt="upload" style="width:28px; height:28px; margin-right:6px; vertical-align:middle;">
+                  Push to DB
+                </button>
+                <input type="hidden" id="push_project_code" value="{{ project_code }}">
+              {% endif %}
+            </div>
+          {% else %}
+            <p class="fc-muted">Run the tool to see ranked results here. You can scroll and download once complete.</p>
+          {% endif %}
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Run Overlay -->
+  <div class="fc-overlay" id="runOverlay" aria-hidden="true">
+    <div class="fc-run-card" role="status" aria-live="polite">
+      <div class="fc-round">
+        <div class="fc-ring"></div>
+        <div class="fc-glow"></div>
+        <img id="runGif" class="fc-run-gif" src="{{ url_for('static', filename='booth.gif') }}" alt="Executing…">
+      </div>
+      <div class="fc-rt" id="runTitle">Executing<span class="fc-dots">...</span></div>
+      <div class="fc-timer" id="runTimer">00:00:00</div>
+      <div class="fc-bar" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div id="fcErr" class="fc-modal-overlay" aria-hidden="true">
+    <div class="fc-modal" role="dialog" aria-modal="true" aria-labelledby="fcErrTitle">
+      <div class="fc-modal-head">
+        <div class="fc-xmark" aria-hidden="true"></div>
+        <h3 id="fcErrTitle" style="color:#ffd7d7;">Error</h3>
+      </div>
+      <div id="fcErrMsg" class="fc-modal-body">Something went wrong.</div>
+      <div class="fc-modal-footer">
+        <button type="button" class="fc-btn" id="fcErrClose">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div id="fcConfirm" class="fc-modal-overlay" aria-hidden="true">
+    <div class="fc-modal" role="dialog" aria-modal="true" aria-labelledby="fcConfirmTitle">
+      <div class="fc-modal-head">
+        <div class="fc-xmark" aria-hidden="true" style="background:
+          radial-gradient(circle at 50% 50%, rgba(0,229,255,.2), transparent 60%),
+          conic-gradient(from 45deg, #00e5ff 0 25%, transparent 0 50%, #00e5ff 0 75%, transparent 0);
+          box-shadow:0 0 16px rgba(0,229,255,.35);"></div>
+        <h3 id="fcConfirmTitle" style="color:#dff9ff;">Confirm</h3>
+      </div>
+      <div id="fcConfirmMsg" class="fc-modal-body">Push output to database?</div>
+      <div class="fc-modal-footer" style="display:flex; gap:8px;">
+        <button type="button" class="fc-btn" id="fcConfirmCancel">Cancel</button>
+        <button type="button" class="fc-btn fc-primary" id="fcConfirmOk">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info Modal -->
+  <div id="fcInfo" class="fc-modal-overlay" aria-hidden="true">
+    <div class="fc-modal" role="dialog" aria-modal="true" aria-labelledby="fcInfoTitle">
+      <div class="fc-modal-head">
+        <div class="fc-xmark" aria-hidden="true" style="background:
+          radial-gradient(circle at 50% 50%, rgba(76,255,158,.2), transparent 60%),
+          conic-gradient(from 45deg, #4cff9e 0 25%, transparent 0 50%, #4cff9e 0 75%, transparent 0);
+          box-shadow:0 0 16px rgba(76,255,158,.35);"></div>
+        <h3 id="fcInfoTitle" style="color:#dff9ff;">Message</h3>
+      </div>
+      <div id="fcInfoMsg" class="fc-modal-body">Done.</div>
+      <div class="fc-modal-footer">
+        <button type="button" class="fc-btn" id="fcInfoClose">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="fc-footer">© Datasolve Analytics Pvt Ltd 2025.</div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+
+  function fmt(ms){
+    const s = Math.floor(ms/1000);
+    const hh = String(Math.floor(s/3600)).padStart(2,'0');
+    const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    return `${hh}:${mm}:${ss}`;
+  }
+  function setFileOnInput(inputEl, file){
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    inputEl.files = dt.files;
+  }
+  function bindDrop(zone, input, labelOut){
+    const el = $(zone), file = $(input), lbl = $(labelOut);
+    if(!el || !file || !lbl) return;
+    lbl.classList.remove('ok');
+
+    el.addEventListener('click', (e)=>{ if(!e.target.closest('.fc-btn-file')) file.click(); });
+    ['dragenter','dragover'].forEach(t=> el.addEventListener(t, e=>{ e.preventDefault(); e.stopPropagation(); el.classList.add('fc-drag'); }));
+    ['dragleave','drop'].forEach(t=> el.addEventListener(t, e=>{ e.preventDefault(); e.stopPropagation(); el.classList.remove('fc-drag'); }));
+
+    el.addEventListener('drop', e=>{
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if(f){ setFileOnInput(file, f); file.dispatchEvent(new Event('change', {bubbles:true})); }
+    });
+
+    file.addEventListener('change', ()=>{
+      const f = file.files && file.files[0];
+      lbl.textContent = f ? f.name : 'No file selected';
+      lbl.classList.toggle('ok', !!f);
+      if(f){
+        if(file.id === 'initial_file'){ autofillProjectCode(f.name); }
+        if(file.id === 'final_file'){ if(!$('#project_code').value) autofillProjectCode(f.name); }
+      }
+    });
+  }
+  function autofillProjectCode(filename){
+    if(!filename) return;
+    const stem = (filename.split('.').slice(0,-1).join('.') || filename);
+    const code = stem.split('_')[0].trim();
+    const field = document.getElementById('project_code');
+    if(field && !field.value && code) field.value = code;
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    bindDrop('#drop-initial', '#initial_file', '#fname-initial');
+    bindDrop('#drop-final',   '#final_file',   '#fname-final');
+
+    // Dispatch Date: force calendar-only, no default
+    const d = document.getElementById('dispatch_date');
+    if(d){
+      d.value = '';
+      const openPicker = () => d.showPicker && d.showPicker();
+      d.addEventListener('focus', openPicker);
+      d.addEventListener('click', openPicker);
+      d.addEventListener('keydown', e => e.preventDefault());
+      d.addEventListener('paste', e => e.preventDefault());
+    }
+
+    {% if final_table %}
+      const f = document.getElementById('final-ranking-form');
+      if (f) f.style.display = 'none';
+    {% endif %}
+
+    const form = document.getElementById('final-ranking-form');
+    const overlay = document.getElementById('runOverlay');
+    const timerEl = document.getElementById('runTimer');
+    let timerId=null, startTs=null, isSubmitting=false;
+
+    function showOverlay(){
+      overlay.style.display='grid';
+      overlay.setAttribute('aria-hidden','false');
+      startTs = Date.now();
+      timerEl.textContent = '00:00:00';
+      if(timerId) clearInterval(timerId);
+      timerId = setInterval(()=>{ timerEl.textContent = fmt(Date.now()-startTs); }, 1000);
+    }
+    function hideOverlay(){
+      overlay.style.display='none';
+      overlay.setAttribute('aria-hidden','true');
+      if(timerId) clearInterval(timerId);
+      timerId = null;
+    }
+    function showError(msg){
+      const wrap = document.getElementById('fcErr');
+      const body = document.getElementById('fcErrMsg');
+      body.textContent = msg || 'Unexpected error.';
+      wrap.classList.add('show');
+      wrap.setAttribute('aria-hidden','false');
+    }
+    function hideError(){
+      const wrap = document.getElementById('fcErr');
+      wrap.classList.remove('show');
+      wrap.setAttribute('aria-hidden','true');
+    }
+    document.getElementById('fcErrClose').addEventListener('click', hideError);
+
+    function modalShow(id){ const m=document.getElementById(id); if(m){ m.classList.add('show'); m.setAttribute('aria-hidden','false'); } }
+    function modalHide(id){ const m=document.getElementById(id); if(m){ m.classList.remove('show'); m.setAttribute('aria-hidden','true'); } }
+
+    const infoMsg  = document.getElementById('fcInfoMsg');
+    document.getElementById('fcInfoClose').addEventListener('click', ()=> modalHide('fcInfo'));
+
+    const btnPush  = document.getElementById('btnPushToDB');
+    const cOk      = document.getElementById('fcConfirmOk');
+    const cCancel  = document.getElementById('fcConfirmCancel');
+
+    if(btnPush){ btnPush.addEventListener('click', ()=> modalShow('fcConfirm')); }
+    if(cCancel){ cCancel.addEventListener('click', ()=> modalHide('fcConfirm')); }
+
+    if(cOk){
+      cOk.addEventListener('click', async ()=>{
+        modalHide('fcConfirm');
+        showOverlay();
+        try{
+          const project_code = (document.getElementById('push_project_code')?.value || '').trim();
+          const fd = new FormData();
+          fd.append('project_code', project_code);
+
+          const analystEl = document.getElementById('analyst');
+          if (analystEl) fd.append('analyst', analystEl.value);
+
+          const res = await fetch('/push_to_db', {
+            method: 'POST',
+            body: fd,
+            headers: { 'Accept': 'application/json' }
+          });
+
+          const data = await res.json().catch(()=>({status:'error', message:'Invalid server response.'}));
+          hideOverlay();
+
+          if(data.status === 'ok'){
+            infoMsg.textContent = data.message || 'Success.';
+            modalShow('fcInfo');
+          }else{
+            showError(data.message || 'Unknown error.');
+          }
+        }catch(err){
+          hideOverlay();
+          showError(err?.message || 'Network error.');
+        }
+      });
+    }
+
+    if(form){
+      form.addEventListener('submit', async (e)=>{
+        const dateVal = (document.getElementById('dispatch_date')?.value || '').trim();
+        if(!dateVal){
+          e.preventDefault(); e.stopPropagation();
+          alert('Please pick a Dispatch Date from the calendar.');
+          document.getElementById('dispatch_date')?.focus();
+          return;
+        }
+
+        e.preventDefault();
+        if(isSubmitting) return;
+        isSubmitting = true;
+        showOverlay();
+
+        try{
+          const fd = new FormData(form);
+          const res = await fetch('/final-dataset', {
+            method: 'POST',
+            body: fd,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'Accept': 'application/json, text/html'
+            }
+          });
+
+          const ctype = (res.headers.get('content-type') || '').toLowerCase();
+
+          if(ctype.includes('application/json')){
+            const data = await res.json().catch(()=>({status:'error', message:'Invalid JSON'}));
+            hideOverlay(); isSubmitting = false;
+            showError(data.message || 'Unknown error.');
+            return;
+          }
+
+          const html = await res.text();
+          document.open(); document.write(html); document.close();
+
+        }catch(err){
+          hideOverlay(); isSubmitting = false;
+          showError(err?.message || 'Network error.');
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape'){ hideOverlay(); hideError(); modalHide('fcConfirm'); modalHide('fcInfo'); }
+    });
+  });
+})();
+</script>
+
+{% endblock %}

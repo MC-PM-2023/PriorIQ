@@ -1,0 +1,65 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.pkl
+*.pyd
+*.egg-info/
+*.egg
+*.log
+
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Byte-compiled / optimized files
+*.pyc
+*.pyo
+*.pyd
+
+# -------------------------
+# Flask / App Build
+# -------------------------
+instance/
+*.sqlite3
+*.db
+*.db-journal
+
+# Ignore secrets
+*.env
+.env
+.env.*
+
+# -------------------------
+# VS Code
+# -------------------------
+.vscode/
+.history/
+
+# -------------------------
+# OS Files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Cache
+# -------------------------
+.cache/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# -------------------------
+# Project Specific
+# -------------------------
+# Ignore compiled model files or large data
+models/
+*.model
+*.h5
+*.pt

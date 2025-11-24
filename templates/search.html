@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+{% block title %}PriorIQ - Mapped Results{% endblock %}
+{% block content %}
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','Arial'] },
+        colors: { neon:'#00F0FF', neon2:'#00C6FF' },
+        boxShadow: { glow:'0 0 14px rgba(0,240,255,.7), 0 0 30px rgba(0,198,255,.6)' },
+        backgroundImage: {
+          hero:'radial-gradient(900px 400px at 15% -10%, rgba(0,198,255,.25), transparent), radial-gradient(900px 400px at 110% 30%, rgba(0,240,255,.18), transparent), linear-gradient(180deg, rgba(12,18,30,.95), rgba(12,18,30,.85))'
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  /* === PAGE/BG === */
+  html, body { background:#0b1220; overflow:hidden; }
+  .search-page{ position:relative; min-height:100vh; color:#e6f1ff; overflow:hidden; padding-bottom:44px; }
+  #bg-video{
+    position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; object-position:center;
+    z-index:-2; filter:brightness(.9) contrast(1.1) saturate(1.05); pointer-events:none;
+  }
+  .search-page::before{
+    content:""; position:fixed; inset:0;
+    background:linear-gradient(180deg, rgba(8,12,24,.35), rgba(8,12,24,.75)); z-index:-1;
+  }
+  .hero-h{ height:56px; }
+
+  /* === GLASS + SEARCH === */
+  .glass{ background:rgba(255,255,255,.07); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.14); }
+  .ac-wrap{ position:relative; }
+  #autocomplete-list{
+    position:absolute; left:0; right:0; margin-top:.35rem; display:none; max-height:240px; overflow:auto; z-index:30;
+    border-radius:12px; background:rgba(6,24,40,.96); border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 0 14px rgba(0,240,255,.25), 0 0 30px rgba(0,198,255,.2);
+  }
+  .ac-wrap.ac-open #autocomplete-list{ position:static; display:block; z-index:auto; }
+  .search-card{ transition:margin-bottom .2s ease; }
+  .search-card.open{ margin-bottom:.5rem; }
+
+  /* === BOXED TABLE === */
+  .table-box{
+    width:100%;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:16px;
+    background:rgba(10,14,25,.55);
+    box-shadow: 0 6px 20px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+    overflow:hidden;
+  }
+
+  /* === SCROLL AREA === */
+  .results-wrap{
+    overflow:auto;
+    scrollbar-gutter: stable both-edges;
+    width:100%;
+  }
+  .results-wrap::-webkit-scrollbar{ width:10px; height:10px; }
+  .results-wrap::-webkit-scrollbar-thumb{ background:rgba(0,198,255,.4); border-radius:8px; }
+
+  /* === TABLE === */
+  table.dataframe{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:1;
+    table-layout:fixed;
+    color:#eef6ff;
+    font-size:12.5px;
+    background:transparent;
+  }
+
+  :root{
+    --w1: 14%;  /* Project Code  */
+    --w2: 18%;  /* Patent Number */
+    --w3: 8%;   /* Result Order  */
+    --w4: 20%;  /* Individual Rating */
+    --w5: 12%;  /* Patentryx     */
+    --w6: 12%;  /* Prion         */
+    --w7: 8%;   /* Initial DS    */
+    --w8: 8%;   /* Version       */
+  }
+
+  table.dataframe thead th:nth-child(1),
+  table.dataframe tbody td:nth-child(1){ width:var(--w1); }
+  table.dataframe thead th:nth-child(2),
+  table.dataframe tbody td:nth-child(2){ width:var(--w2); }
+  table.dataframe thead th:nth-child(3),
+  table.dataframe tbody td:nth-child(3){ width:var(--w3); }
+  table.dataframe thead th:nth-child(4),
+  table.dataframe tbody td:nth-child(4){ width:var(--w4); }
+  table.dataframe thead th:nth-child(5),
+  table.dataframe tbody td:nth-child(5){ width:var(--w5); }
+  table.dataframe thead th:nth-child(6),
+  table.dataframe tbody td:nth-child(6){ width:var(--w6); }
+  table.dataframe thead th:nth-child(7),
+  table.dataframe tbody td:nth-child(7){ width:var(--w7); }
+  table.dataframe thead th:nth-child(8),
+  table.dataframe tbody td:nth-child(8){ width:var(--w8); }
+
+  table.dataframe thead th{
+    position:sticky; top:0; z-index:5;
+    padding:.30rem .60rem;
+    text-align:center;
+    vertical-align:middle;
+    font-weight:600;
+    font-size:.70rem;
+    line-height:1.0rem;
+    background:rgba(19,31,56,.95);
+    backdrop-filter:blur(6px);
+    border-bottom:1px solid rgba(255,255,255,.22);
+    white-space:normal;
+    word-break:break-word;
+    text-transform:none;
+    border-right:1px solid rgba(255,255,255,.12);
+  }
+  table.dataframe thead th:last-child{ border-right:none; }
+  table.dataframe thead th:first-child{ border-top-left-radius:12px; }
+  table.dataframe thead th:last-child{ border-top-right-radius:12px; }
+
+  table.dataframe tbody td{
+    padding:.25rem .60rem;
+    text-align:left;
+    vertical-align:middle;
+    line-height:.95rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    border-top:1px solid rgba(255,255,255,.10);
+    border-right:1px solid rgba(255,255,255,.10);
+  }
+  table.dataframe tbody tr td:last-child{ border-right:none; }
+
+  table.dataframe tbody tr:nth-child(even){ background:rgba(255,255,255,.03); }
+  table.dataframe tbody tr:nth-child(odd){  background:rgba(255,255,255,.06); }
+  table.dataframe tbody tr:hover{ background:rgba(0,198,255,.10); }
+
+  ::selection{ background:rgba(0,198,255,.35); color:#05121f; }
+
+  .footer{
+    position:fixed; left:0; right:0; bottom:0; height:40px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(10,14,25,.7);
+    backdrop-filter: blur(8px);
+    border-top:1px solid rgba(255,255,255,.12);
+    color:#bfeaff; font-size:.78rem; gap:.5rem;
+    z-index:50;
+  }
+  .footer a{ color:#7dd3fc; text-decoration:none; }
+  .footer a:hover{ text-decoration:underline; }
+</style>
+
+<div class="search-page">
+  <video id="bg-video" autoplay muted loop>
+    <source src="{{ url_for('static', filename='vv.mp4') }}" type="video/mp4">
+  </video>
+
+  <!-- Header -->
+  <section class="hero-h bg-hero flex items-center justify-center">
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-neon to-neon2 drop-shadow-[0_0_10px_rgba(0,198,255,.45)]">
+      Mapped Results
+    </h1>
+  </section>
+
+  <!-- Container -->
+  <section class="relative">
+    <div class="w-full mx-0 px-3 sm:px-4 lg:px-6 pt-3">
+      <!-- Search -->
+      <div id="searchCard" class="search-card glass rounded-2xl p-3 mb-2 ring-1 ring-white/5">
+        <form method="POST" class="flex flex-col lg:flex-row items-stretch lg:items-center gap-2.5">
+          <label for="project_code" class="text-xs font-semibold text-white/90">Enter Project Code</label>
+          <div id="acWrap" class="ac-wrap w-full lg:max-w-3xl">
+            <input
+              type="text" id="project_code" name="project_code"
+              placeholder="e.g. IP102-1501" autocomplete="off" required
+              value="{{ project_code or request.form.get('project_code','') }}"
+              class="w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 outline-none focus:ring-4 focus:ring-neon/30 focus:border-neon/60 text-white placeholder-white/50 shadow-inner"
+            />
+            <ul id="autocomplete-list"></ul>
+          </div>
+          <button
+            type="submit"
+            class="relative inline-flex justify-center items-center rounded-full px-6 py-2 font-extrabold text-base bg-gradient-to-r from-neon to-neon2 text-[#0B1220] shadow-glow transition-transform active:translate-y-[1px]">
+            Search
+          </button>
+          {% if message %}
+            <div class="lg:ml-auto text-red-300 font-semibold text-xs">{{ message }}</div>
+          {% endif %}
+        </form>
+      </div>
+
+      <!-- Results: BOXED -->
+      <div class="table-box">
+        {% if table %}
+          <div id="resultsWrap" class="results-wrap">
+            {{ table|safe }}
+          </div>
+        {% else %}
+          <div class="p-6 text-center text-white/70 text-sm">Enter a project code above to see the mapped results.</div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- Sticky Footer -->
+<footer class="footer">
+  <span>&copy;Datasolve Analytics Pvt Ltd 2025.</span>
+</footer>
+
+<script>
+  const suggestions = {{ suggestions | tojson }};
+  const input = document.getElementById('project_code');
+  const list  = document.getElementById('autocomplete-list');
+  const acWrap = document.getElementById('acWrap');
+  const searchCard = document.getElementById('searchCard');
+
+  function renderList(items){
+    list.innerHTML='';
+    items.forEach(code=>{
+      const li=document.createElement('li');
+      li.className='px-3 py-2 cursor-pointer hover:bg-[rgba(0,198,255,.2)] transition';
+      li.textContent=code;
+      li.onclick=()=>{ input.value=code; closeList(); };
+      list.appendChild(li);
+    });
+  }
+  function openList(){ acWrap.classList.add('ac-open'); searchCard.classList.add('open'); list.style.display='block'; sizeResults(); }
+  function closeList(){ list.style.display='none'; acWrap.classList.remove('ac-open'); searchCard.classList.remove('open'); sizeResults(); }
+
+  input.addEventListener('input', ()=>{
+    const v=input.value.trim().toLowerCase();
+    if(!v){ closeList(); return; }
+    const filtered=suggestions.filter(s=>s.toLowerCase().includes(v)).slice(0,80);
+    if(!filtered.length){ closeList(); return; }
+    renderList(filtered); openList();
+  });
+  document.addEventListener('click', (e)=>{ if(!acWrap.contains(e.target)) closeList(); });
+
+  function hideColumnByHeader(headerText){
+    const tbl=document.querySelector('table.dataframe'); if(!tbl) return;
+    const ths=[...tbl.querySelectorAll('thead th')];
+    const idx=ths.findIndex(th=>th.textContent.trim().toLowerCase()===headerText.toLowerCase());
+    if(idx===-1) return;
+    ths[idx].style.display='none';
+    tbl.querySelectorAll('tbody tr').forEach(tr=>{ if(tr.children[idx]) tr.children[idx].style.display='none'; });
+  }
+
+  function sizeResults(){
+    const wrap=document.getElementById('resultsWrap'); if(!wrap) return;
+    const rect=wrap.getBoundingClientRect();
+    const vh=window.innerHeight;
+    const FOOTER_H = 40;
+    const bottomPad=10 + FOOTER_H;
+    const h=vh - rect.top - bottomPad;
+    wrap.style.height=(h>160?h:160)+'px';
+  }
+
+  function replaceHeaderWithImage(headerText, imgFile){
+    const tbl=document.querySelector('table.dataframe'); if(!tbl) return;
+    const ths=[...tbl.querySelectorAll('thead th')];
+    const target=ths.find(th=>th.textContent.trim().toLowerCase()===headerText.toLowerCase());
+    if(target){
+      const img=document.createElement('img');
+      img.src="{{ url_for('static', filename='') }}"+imgFile;
+      img.alt=headerText;
+      img.style.height='26px';
+      img.style.verticalAlign='middle';
+      img.style.display='inline-block';
+      img.style.margin='2px auto';
+      target.textContent='';
+      target.appendChild(img);
+    }
+  }
+
+  window.addEventListener('load', ()=>{
+    hideColumnByHeader('id');
+    sizeResults();
+    replaceHeaderWithImage('Patentryx','Patentryx.gif');
+    replaceHeaderWithImage('Prion','Prion.gif');
+  });
+  window.addEventListener('resize', sizeResults);
+</script>
+{% endblock %}

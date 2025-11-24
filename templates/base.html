@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <!-- ===== Title Block Added (THIS FIXES YOUR ISSUE) ===== -->
+  <title>{% block title %}PriorIQ{% endblock %}</title>
+  <!-- ====================================================== -->
+
+  <link rel="icon" href="{{ url_for('static', filename='PriorIQ Icon.png') }}" type="image/x-icon"/>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+  <style>
+    :root{
+      --header-h: 64px;
+      --sidebar-w: 200px;
+
+      --sidebar-bg: #1B5C61;
+      --sidebar-hover: #1F4A64;
+      --active-bg: rgba(255, 255, 255, 0.15);
+
+      --logout-color: #DC3545;
+      --logout-hover: #C82333;
+
+      --icon-dashboard: #007BFF;
+      --icon-initial:   #20C997;
+      --icon-final:     #007BFF;
+      --icon-sql:       #DC3545;
+    }
+
+    html, body{
+      margin:0; padding:0; min-height:100%;
+      font-family: Inter, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background:#f7f9fc;
+    }
+    body{display:flex}
+
+    /* ===== Fixed Header ===== */
+    .header{
+      position: fixed; top:0; left:0; right:0; height: var(--header-h);
+      background:#ffffff; border-bottom:1px solid #E6E9EE;
+      display:flex; align-items:center; gap:12px; padding: 10px 16px;
+      z-index: 1000;
+    }
+    .header .logo{height:38px}
+    .header-spacer{flex:1}
+    .header-gif{
+      height:40px; width:auto; object-fit:contain;
+      border-radius:8px;
+      margin-left:10px;
+    }
+    @media (max-width:768px){
+      .header-gif{ display:none; }
+    }
+
+    /* ===== Profile + Dropdown ===== */
+    .profile{
+      position:relative; display:flex; align-items:center; gap:10px;
+      cursor:pointer; user-select:none;
+    }
+    .profile .username{color:#1c2a39; font-weight:700; font-size:15px}
+    .profile img{
+      height:36px; width:36px; object-fit:cover;
+      border-radius:60%; border:2px solid #E7EDF5;
+      object-position: center 20%;
+    }
+    .dropdown-content{
+      position:absolute; top:calc(100% + 8px); right:0;
+      background:#fff; min-width:240px; border-radius:12px; overflow:hidden;
+      box-shadow:0 10px 28px rgba(0,0,0,.15);
+      border:1px solid #EEF1F5; z-index:1001;
+      display:none;
+    }
+    .dropdown-content.open{ display:block; }
+    .dropdown-header{
+      display:flex; gap:10px; align-items:center;
+      padding:12px 14px; border-bottom:1px solid #EDF1F6;
+    }
+    .dropdown-header .avatar{
+      height:36px; width:36px; border-radius:50%;
+      object-fit:cover; border:2px solid #EEF2F7;
+      object-position: center 60%;
+    }
+    .dropdown-header .name{ font-weight:700; font-size:14px; color:#1f2937; line-height:1.2; }
+    .dropdown-header .email{ font-size:12px; color:#6b7280; margin-top:2px; word-break:break-all; }
+    .dropdown-item{
+      display:flex; align-items:center; gap:8px;
+      padding:12px 14px; text-decoration:none; font-weight:600; font-size:14px;
+      color:#e11d48; background:#fff;
+    }
+    .dropdown-item:hover{ background:#ffecec; }
+    .dropdown-divider{ height:1px; background:#edf1f6; }
+
+    /* ===== Sidebar ===== */
+    .sidebar{
+      width: var(--sidebar-w);
+      position: fixed; top: var(--header-h); left: 0;
+      height: calc(100vh - var(--header-h));
+      background: var(--sidebar-bg);
+      padding: 16px 10px 14px;
+      display: flex; flex-direction: column; gap: 6px;
+      box-shadow: 2px 0 12px rgba(0,0,0,.18);
+      border-right: 1px solid rgba(255,255,255,.08);
+      z-index: 900; overflow-y: auto;
+    }
+    .sidebar::before{
+      content:""; position:absolute; inset:0 auto 0 0; width:3px;
+      background: linear-gradient(180deg,#0EA5E9,#22D3EE);
+      box-shadow: 0 0 12px rgba(14,165,233,.55);
+    }
+    .nav-label{
+      padding: 6px 12px 10px 18px; color:#cfe7ff; letter-spacing:.2px; font-weight:700;
+      text-transform:uppercase; font-size:12px; opacity:.85;
+    }
+    .sidebar a{
+      --accent:#60a5fa;
+      display:flex; align-items:center; gap:12px;
+      color:#fff; text-decoration:none; padding:12px 14px 12px 18px;
+      border-radius:12px; position:relative; transition: transform .15s ease, background .2s ease;
+      font-size:15px; font-weight:700;
+    }
+    .sidebar a .bi{min-width:24px; text-align:center; font-size:20px}
+    .sidebar a::before{
+      content:""; position:absolute; left:6px; top:10px; bottom:10px; width:4px;
+      background: linear-gradient(180deg,var(--accent),transparent);
+      border-radius:6px; opacity:.75; transition: opacity .2s, transform .2s;
+    }
+    .sidebar a:hover{background: var(--sidebar-hover); transform: translateX(2px)}
+    .sidebar a:hover::before{opacity:1; transform: scaleX(1.05)}
+    .sidebar a.active{background: var(--active-bg); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06)}
+    .sidebar a.active::after{
+      content:""; position:absolute; left:-2px; top:8px; bottom:8px; width:6px;
+      background: linear-gradient(180deg,#0EA5E9,#22D3EE);
+      border-radius:10px; box-shadow:0 0 12px rgba(14,165,233,.6);
+    }
+
+    .sidebar a[data-nav="overall"] .bi{ color: var(--icon-dashboard) }
+    .sidebar a[data-nav="initial"] .bi{ color: var(--icon-initial) }
+    .sidebar a[data-nav="final"]   .bi{ color: var(--icon-final) }
+    .sidebar a[data-nav="sql"]     .bi{ color: var(--icon-sql) }
+
+    .sidebar a[data-nav="overall"]{ --accent:#60a5fa }
+    .sidebar a[data-nav="initial"]{ --accent:#10b981 }
+    .sidebar a[data-nav="final"]  { --accent:#60a5fa }
+    .sidebar a[data-nav="sql"]    { --accent:#ef4444 }
+
+    /* ===== Main wrapper ===== */
+    .main{
+      margin-left: var(--sidebar-w);
+      padding-top: var(--header-h);
+      flex:1; min-height:100vh; width: calc(100% - var(--sidebar-w));
+      display:flex; flex-direction:column;
+    }
+    .content{flex:1; padding:16px; min-height: calc(100vh - var(--header-h));}
+
+    @media (max-width: 768px){
+      :root{ --sidebar-w: 0px; }
+      .sidebar{ width: 0; padding:0; overflow:hidden; border-right:0 }
+      .main{ margin-left:0; width:100%; }
+      .header{ padding:10px 12px }
+      .profile .username{ display:none; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Fixed Header -->
+  <div class="header">
+    <img src="{{ url_for('static', filename='wh.jpg') }}" class="logo" alt="logo"/>
+    <div class="header-spacer"></div>
+
+    <!-- Profile (Dynamic Image + Dropdown) -->
+    <div class="profile" id="profileBtn" role="button" aria-haspopup="true" aria-expanded="false">
+      {% set display_email = user_email or session.get('user_email') %}
+      {% set display_name  = profile_name or session.get('user_name') or 'User' %}
+      <span class="username">{{ display_name }}</span>
+      <img
+        src="{{
+              profile_image_url
+              or (gravatar_url(display_email, 120) if display_email else None)
+              or url_for('static', filename='avatar-default.png')
+            }}"
+        alt="Profile"
+      />
+      <div class="dropdown-content" id="profileMenu" role="menu" aria-label="Profile menu">
+        <div class="dropdown-header">
+          <img class="avatar"
+               src="{{
+                      profile_image_url
+                      or (gravatar_url(display_email, 120) if display_email else None)
+                      or url_for('static', filename='avatar-default.png')
+                    }}"
+               alt="Avatar"
+          />
+          <div>
+            <div class="name">{{ display_name }}</div>
+            <div class="email">{{ display_email }}</div>
+          </div>
+        </div>
+        <div class="dropdown-divider"></div>
+        <a class="dropdown-item" href="{{ url_for('logout') }}">
+          <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+      </div>
+    </div>
+
+    <img class="header-gif" src="{{ url_for('static', filename='header-right.gif') }}" alt="header gif"/>
+  </div>
+
+  <!-- Sidebar -->
+  {% set role = session.get('role') %}
+  <nav class="sidebar" aria-label="Sidebar">
+    <div class="nav-label"></div>
+
+    <a data-nav="overall" href="{{ url_for('overall') }}" class="{{ 'active' if request.endpoint == 'overall' else '' }}">
+      <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+
+    <a data-nav="initial" href="{{ url_for('page_a') }}" class="{{ 'active' if request.endpoint == 'page_a' else '' }}">
+      <i class="bi bi-lightning-charge"></i> Initial Dataset
+    </a>
+
+    <a data-nav="final" href="{{ url_for('page_b') }}" class="{{ 'active' if request.endpoint == 'page_b' else '' }}">
+      <i class="bi bi-flag"></i> Final Dataset
+    </a>
+
+    <a data-nav="sql" href="{{ url_for('page_c') }}" class="{{ 'active' if request.endpoint == 'page_c' else '' }}">
+      <i class="bi bi-database"></i> Mapped Results
+    </a>
+
+    {% if role in ['admin', 'superadmin'] %}
+      <a data-nav="logs" href="{{ url_for('logs') }}" class="{{ 'active' if request.endpoint == 'logs' else '' }}">
+        <i class="bi bi-clipboard2-data"></i> Logs
+      </a>
+    {% endif %}
+  </nav>
+
+  <!-- Main area -->
+  <div class="main">
+    <div class="content">
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  <script>
+    // Profile dropdown toggle + click-outside + ESC close
+    (function(){
+      const btn  = document.getElementById('profileBtn');
+      const menu = document.getElementById('profileMenu');
+
+      function closeMenu(){
+        menu.classList.remove('open');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+      function openMenu(){
+        menu.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+      function toggleMenu(){
+        const isOpen = menu.classList.contains('open');
+        isOpen ? closeMenu() : openMenu();
+      }
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMenu();
+      });
+      document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target) && !btn.contains(e.target)) closeMenu();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+      });
+    })();
+  </script>
+</body>
+</html>

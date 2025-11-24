@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block content %}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+<style>
+  :root{
+    --header-h: 35px; --radius-lg: 16px; --radius-sm: 12px; --pad: 16px;
+    --mint-50:#e6fbf6; --mint-100:#ccf7ee; --mint-200:#a6efe1; --mint-300:#7fe7d4; --mint-400:#55ddc4; --mint-500:#2fd3b4;
+    --blue-50:#eaf5ff; --blue-100:#d4ebff; --blue-200:#b7dcff; --blue-300:#93caff; --blue-400:#6cb5ff; --blue-500:#4aa2ff;
+    --ink-900:#0b1220; --ink-700:#15243b; --ink-500:#304562; --ink-300:#6e84a0;
+    --card: rgba(255,255,255,.72); --stroke: rgba(17,28,45,.12);
+    --grad: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,255,255,.72)); --glass-blur: blur(10px);
+  }
+  html, body { height:100%; margin:0; overflow:hidden; }
+  body, .overall { font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+  .overall{
+    height:calc(100vh - var(--header-h));
+    display:grid; grid-template-rows: 56px 48px 1fr; gap:12px; padding:var(--pad); box-sizing:border-box;
+    background: radial-gradient(1200px 800px at 10% -10%, var(--mint-50), transparent 60%),
+               radial-gradient(1200px 800px at 110% 110%, var(--blue-50), transparent 60%);
+  }
+  .o-bar{
+    display:grid; grid-template-columns:1fr auto; align-items:center; padding:8px 12px;
+    border:1px solid var(--stroke); border-radius:var(--radius-lg);
+    background:var(--grad); backdrop-filter:var(--glass-blur);
+    box-shadow:0 6px 18px rgba(12,34,64,.06), inset 0 1px 0 rgba(255,255,255,.65);
+  }
+  .o-title{ font-size:1rem; font-weight:800; color:var(--ink-900); display:inline-flex; gap:10px; align-items:center;}
+  .o-title .dot{ width:.7rem; height:.7rem; border-radius:999px; background:linear-gradient(135deg,var(--mint-400),var(--blue-400)); box-shadow:0 0 0 6px rgba(111,207,255,.18); }
+  .o-actions{ display:grid; grid-auto-flow:column; gap:8px; }
+  .o-btn{
+    border:1px solid var(--stroke);
+    background:linear-gradient(180deg, rgba(255,255,255,.95), rgba(255,255,255,.78));
+    color:var(--ink-900); padding:6px 10px; border-radius:12px; font-weight:700; letter-spacing:.15px;
+    display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  }
+  .o-btn.active{ background:linear-gradient(180deg, color-mix(in srgb, var(--mint-100) 70%, white), color-mix(in srgb, var(--blue-100) 80%, white));
+    border-color:color-mix(in srgb, var(--blue-400) 50%, var(--stroke));
+    box-shadow:0 10px 22px rgba(41,159,255,.18), inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  .o-filter{
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px; padding:6px 10px;
+    border:1px solid var(--stroke); border-radius:var(--radius-lg);
+    background:var(--grad); backdrop-filter:var(--glass-blur);
+    box-shadow:0 6px 18px rgba(12,34,64,.05), inset 0 1px 0 rgba(255,255,255,.55);
+  }
+  .o-filter form{ display:grid; grid-auto-flow:column; gap:6px; align-items:center; }
+  .o-filter label{ font-weight:700; font-size:.9rem; color:var(--ink-700); }
+  .o-filter input[type="date"], .o-filter select{
+    border:1px solid var(--stroke); background:white; color:var(--ink-900);
+    padding:4px 8px; height:30px; border-radius:10px; font-weight:600;
+  }
+  .btn-lite{
+    border:1px solid var(--stroke); background:white; color:var(--ink-900);
+    padding:4px 8px; height:30px; border-radius:10px; font-weight:700; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  }
+  .viewer-controls{ display:grid; grid-auto-flow:column; align-items:center; gap:10px; }
+  .quick-row{ display:grid; grid-auto-flow:column; gap:8px; }
+  .quick{
+    border:1px dashed var(--stroke); background:white; color:var(--ink-900);
+    padding:0 10px; height:28px; border-radius:999px; font-weight:700; font-size:.82rem; cursor:pointer;
+  }
+  .icon-btn{
+    border:1px solid var(--stroke); background:white; width:32px; height:32px; border-radius:10px; display:grid; place-items:center; cursor:pointer;
+  }
+
+  .viewer{ position:relative; border:1px solid var(--stroke); border-radius:var(--radius-lg);
+    overflow:hidden; background:var(--card); backdrop-filter:var(--glass-blur); min-height:0; }
+
+  /* Header strip */
+  .viewer-head{
+    display:grid; grid-template-columns:1fr auto; align-items:center; gap:10px;
+    padding:10px 12px; border-bottom:1px solid color-mix(in srgb, var(--blue-400) 40%, var(--mint-400));
+    background:linear-gradient(90deg, var(--mint-200), var(--blue-200));
+  }
+  .viewer-title{ color:var(--ink-900); font-weight:700; display:inline-flex; align-items:center; gap:8px; }
+  .head-open-btn{
+    border:1px solid var(--stroke);
+    background:white;
+    width:34px; height:34px; border-radius:10px;
+    display:grid; place-items:center; cursor:pointer;
+  }
+
+  .viewer iframe{
+    display:block; width:100%;
+    height:calc(100vh - var(--header-h) - 56px - 48px - 24px - (2 * var(--pad)));
+    min-height:520px; border:0; background:#f0f0f0; overflow:auto;
+  }
+  .o-loader{ position:absolute; inset:0; display:grid; place-items:center;
+    background: radial-gradient(900px 600px at 10% 0%, rgba(113,221,200,.10), transparent),
+               radial-gradient(900px 600px at 90% 100%, rgba(108,181,255,.10), transparent),
+               rgba(255,255,255,.35);
+    pointer-events:none; opacity:0; transition:opacity .22s ease;
+  }
+  .o-loader.show{ opacity:1; }
+  .spinner{ width:40px; height:40px; border-radius:999px; border:3px solid rgba(108,181,255,.25); border-top-color:var(--blue-400); animation:spin 1s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg);} }
+  .o-note{ position:absolute; inset:0; display:none; place-items:center; text-align:center; padding:18px; color:var(--ink-700);
+    background: linear-gradient(180deg, rgba(108,181,255,.08), rgba(255,255,255,0));
+  }
+  .o-note.show{ display:grid; }
+
+  /* Box styling only for Result remains */
+  .result-box{ border:1.5px solid color-mix(in srgb, var(--blue-400) 60%, var(--mint-400));
+    background:linear-gradient(145deg, rgba(230,251,246,.95), rgba(234,245,255,.95));
+    box-shadow:0 20px 40px rgba(80,180,255,.15), inset 0 1px 0 rgba(255,255,255,.7); }
+
+  .is-hidden{ display:none !important; }
+
+  @media (max-width:760px){
+    .o-bar{ grid-template-columns:1fr; } .o-actions{ grid-auto-flow:row; }
+    .o-filter{ grid-template-columns:1fr; } .o-filter form{ grid-auto-flow:row; }
+    .viewer iframe{ height:calc(100vh - var(--header-h) - 56px - 96px - 24px - (2 * var(--pad))); }
+    .viewer-controls{ grid-auto-flow:row; }
+  }
+</style>
+
+<div class="overall" id="overallRoot" role="region" aria-label="Overall">
+
+  <!-- Top Bar -->
+  <div class="o-bar">
+    <div class="o-title">
+      <span class="dot" aria-hidden="true"></span>
+      PriorIQ Dashboards
+    </div>
+    <div class="o-actions" id="oActions">
+      {% set _active_label = active_label if active_label is defined else (sites[0]['label'] if sites and sites[0]['label'] else 'Dashboard') %}
+      {% for s in sites %}
+        {% set icon =
+            'bi-speedometer2' if s.label=='Dashboard' else
+            ('bi-stars' if s.label=='Rating' else
+            ('bi-bar-chart-line' if s.label=='Result' else 'bi-grid')) %}
+        {% set is_active = (s.label == _active_label) %}
+        <button class="o-btn{% if is_active %} active{% endif %}"
+                data-baseurl="{{ s.url|e }}"
+                data-label="{{ s.label|e }}"
+                data-icon="{{ icon }}"
+                type="button"
+                aria-pressed="{{ 'true' if is_active else 'false' }}">
+          <i class="bi {{ icon }}"></i>{{ s.label }}
+        </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="o-filter" aria-label="Filters">
+    <form id="filterForm" role="search">
+      <label for="startDate">Start</label>
+      <input type="date" id="startDate" name="start_date" value="{{ start_date or '' }}">
+      <label for="endDate">End</label>
+      <input type="date" id="endDate" name="end_date" value="{{ end_date or '' }}">
+      <label for="analystSel">Analyst</label>
+      <select id="analystSel" name="analyst">
+        <option value="">All</option>
+        {% if analyst and (not analysts or analyst not in analysts) %}
+          <option value="{{ analyst }}" selected>{{ analyst }}</option>
+        {% endif %}
+        {% for a in analysts %}
+          <option value="{{ a }}" {% if analyst and analyst==a %}selected{% endif %}>{{ a }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-lite"><i class="bi bi-funnel"></i> Apply</button>
+    </form>
+
+    <div class="viewer-controls">
+      <div class="quick-row">
+        <button class="quick" data-q="last7">Last 7d</button>
+        <button class="quick" id="quickLast30" data-q="last30">Last 30d</button>
+        <button class="quick" data-q="mtd">MTD</button>
+        <button class="quick" data-q="yday">Yesterday</button>
+        <button class="quick" data-q="lastmonth">Last Month</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Viewer -->
+  <section class="viewer" id="viewerCard" aria-label="Embedded view">
+    <div class="viewer-head" id="viewerHead">
+      <div class="viewer-title" id="viewerTitle">
+        {% set _init_label = _active_label %}
+        {% set _init_icon  = 'bi-speedometer2' if _init_label=='Dashboard' else ('bi-stars' if _init_label=='Rating' else ('bi-bar-chart-line' if _init_label=='Result' else 'bi-grid')) %}
+        <i class="bi {{ _init_icon }}"></i>{{ _init_label }}
+      </div>
+      <button class="head-open-btn" id="openNewHead" title="Open in new tab" aria-label="Open in new tab">
+        <i class="bi bi-box-arrow-up-right"></i>
+      </button>
+    </div>
+
+    <div class="viewer-body">
+      {% set _current_site = (sites | selectattr('label','equalto',_active_label) | list | first) if sites else None %}
+      {% set _base0 = (_current_site.url if _current_site is not none else (sites[0]['url'] if sites else url_for('dashboard'))) %}
+      {% set _qs = [] %}
+      {% if start_date %}{% set _ = _qs.append('start_date=' ~ start_date) %}{% endif %}
+      {% if end_date %}{% set _ = _qs.append('end_date=' ~ end_date) %}{% endif %}
+      {% if analyst %}{% set _ = _qs.append('analyst=' ~ analyst|urlencode) %}{% endif %}
+      {% set _initial_src = _base0 ~ (('?' ~ _qs|join('&')) if _qs|length>0 else '') %}
+
+      <iframe id="siteFrame"
+              src="{{ _initial_src|e }}"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              allow="fullscreen"
+              title="Embedded route"></iframe>
+
+      <div class="o-loader" id="oLoader" aria-hidden="true">
+        <div class="spinner" id="loaderSpinner" role="status" aria-label="Loading"></div>
+      </div>
+
+      <div class="o-note" id="oNote" aria-live="polite">
+        <div>
+          <strong><i class="bi bi-shield-exclamation"></i> Can’t display this here</strong>
+          <small>Some pages may block embedding. Open it directly using “Open”.</small>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  (function(){
+    const actions   = document.getElementById('oActions');
+    const frame     = document.getElementById('siteFrame');
+    const loader    = document.getElementById('oLoader');
+    const note      = document.getElementById('oNote');
+    const titleEl   = document.getElementById('viewerTitle');
+    const viewer    = document.getElementById('viewerCard');
+
+    const filterForm = document.getElementById('filterForm');
+    const startDate  = document.getElementById('startDate');
+    const endDate    = document.getElementById('endDate');
+    const analystSel = document.getElementById('analystSel');
+    const quickRow   = document.querySelector('.quick-row');
+    const btnLast30  = document.getElementById('quickLast30');
+    const btnOpenHead= document.getElementById('openNewHead');
+
+    function fmtLocal(d){
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+    function setActive(btn){
+      actions.querySelectorAll('.o-btn').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-pressed','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed','true');
+      updateDashboardHides();
+    }
+    function showLoader(flag){ loader.classList.toggle('show', !!flag); }
+
+    function buildUrl(base){
+      const p = new URLSearchParams();
+      if(startDate.value) p.set('start_date', startDate.value);
+      if(endDate.value)   p.set('end_date', endDate.value);
+      if(analystSel && analystSel.value) p.set('analyst', analystSel.value);
+      const qs = p.toString();
+      return qs ? (base + (base.includes('?') ? '&' : '?') + qs) : base;
+    }
+    function currentActive(){ return actions.querySelector('.o-btn.active'); }
+    function currentBaseUrl(){ const b=currentActive(); return b ? b.getAttribute('data-baseurl') : '{{ url_for("dashboard") }}'; }
+    function currentLabel(){
+      const b=currentActive(); return (b?.getAttribute('data-label')||'').toLowerCase();
+    }
+
+    // Hide "Last 30d" only for Dashboard
+    function updateDashboardHides(){
+      const isDashboard = currentLabel()==='dashboard';
+      if(btnLast30){ btnLast30.classList.toggle('is-hidden', isDashboard); }
+    }
+
+    // Pull analysts for current date window
+    async function syncAnalysts(preserveSelection=true){
+      try{
+        const sd = startDate.value || '';
+        const ed = endDate.value   || '';
+        const url = new URL("{{ url_for('overall_analysts') }}", window.location.origin);
+        if(sd) url.searchParams.set('start_date', sd);
+        if(ed) url.searchParams.set('end_date', ed);
+
+        const want = preserveSelection ? analystSel.value : "";
+        const res = await fetch(url.toString(), {credentials:'same-origin'});
+        const js  = await res.json();
+
+        const list = Array.isArray(js.analysts) ? js.analysts : [];
+        analystSel.innerHTML = '';
+        const optAll = document.createElement('option');
+        optAll.value = ''; optAll.textContent = 'All';
+        analystSel.appendChild(optAll);
+
+        for(const a of list){
+          const o = document.createElement('option');
+          o.value = a; o.textContent = a;
+          analystSel.appendChild(o);
+        }
+
+        if(want && list.includes(want)){ analystSel.value = want; }
+        else{ analystSel.value = ''; }
+      }catch(e){
+        console.error('syncAnalysts failed', e);
+      }
+    }
+
+    // Switch tab / iframe
+    actions.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.o-btn[data-baseurl]'); if(!btn) return;
+      setActive(btn);
+
+      const base  = btn.getAttribute('data-baseurl');
+      const label = btn.getAttribute('data-label') || 'Viewer';
+      const icon  = btn.getAttribute('data-icon')  || 'bi-grid';
+
+      // 🔹 Browser tab title update
+      document.title = `PriorIQ - ${label}`;
+
+      // ----- URL slug decide பண்ண்றது -----
+      const lblLower = label.toLowerCase();
+      let viewSlug = 'overall';
+      if (lblLower === 'dashboard') viewSlug = 'overall';
+      else if (lblLower === 'rating') viewSlug = 'rating';
+      else if (lblLower === 'result') viewSlug = 'result';
+
+      // 🔹 URL update: dashboard-overall / dashboard-rating / dashboard-result
+      window.history.replaceState({}, '', `/dashboard-${viewSlug}`);
+
+      titleEl.innerHTML = `<i class="bi ${icon}"></i> ${label}`;
+
+      // Result keeps special box styling only
+      if (lblLower === 'result'){ viewer.classList.add('result-box'); }
+      else { viewer.classList.remove('result-box'); }
+
+      const url = buildUrl(base);
+      showLoader(true); note.classList.remove('show');
+      try{ frame.src===url ? frame.contentWindow.location.reload() : (frame.src=url); }
+      catch(_){ frame.src=url; }
+    });
+
+    frame.addEventListener('load', ()=>{ showLoader(false); note.classList.remove('show'); });
+
+    // Apply
+    filterForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      showLoader(true);
+      frame.src = buildUrl(currentBaseUrl());
+    });
+
+    // Quick ranges
+    quickRow.addEventListener('click', async (e)=>{
+      const btn=e.target.closest('.quick'); if(!btn) return; e.preventDefault();
+      const t=new Date(); const key=btn.getAttribute('data-q');
+
+      if(key==='last7'){ const s=new Date(t); s.setDate(s.getDate()-6); startDate.value=fmtLocal(s); endDate.value=fmtLocal(t); }
+      if(key==='last30'){ const s=new Date(t); s.setDate(s.getDate()-29); startDate.value=fmtLocal(s); endDate.value=fmtLocal(t); }
+      if(key==='mtd'){ const s=new Date(t.getFullYear(), t.getMonth(), 1); startDate.value=fmtLocal(s); endDate.value=fmtLocal(t); }
+      if(key==='yday'){ const y=new Date(t); y.setDate(y.getDate()-1); startDate.value=fmtLocal(y); endDate.value=fmtLocal(y); }
+      if(key==='lastmonth'){ const s=new Date(t.getFullYear(), t.getMonth()-1, 1); const eom=new Date(t.getFullYear(), t.getMonth(), 0); startDate.value=fmtLocal(s); endDate.value=fmtLocal(eom); }
+
+      await syncAnalysts();
+      showLoader(true); frame.src = buildUrl(currentBaseUrl());
+    });
+
+    // Open in new tab
+    btnOpenHead.addEventListener('click', ()=>{
+      const url = buildUrl(currentBaseUrl());
+      window.open(url, '_blank', 'noopener,noreferrer');
+    });
+
+    // Date changes -> refresh analyst list
+    startDate.addEventListener('change', ()=> syncAnalysts());
+    endDate.addEventListener('change',   ()=> syncAnalysts());
+
+    // Init
+    (async function init(){
+      const b=actions.querySelector('.o-btn.active'); 
+      if(b){
+        const icon=b.getAttribute('data-icon')||'bi-grid';
+        const label=b.getAttribute('data-label')||'Viewer';
+        titleEl.innerHTML = `<i class="bi ${icon}"></i> ${label}`;
+
+        // 🔹 initial browser tab title
+        document.title = `PriorIQ - ${label}`;
+
+        if (label.toLowerCase()==='result'){ viewer.classList.add('result-box'); }
+      }
+      updateDashboardHides();
+      await syncAnalysts();
+    })();
+  })();
+</script>
+
+{% endblock %}

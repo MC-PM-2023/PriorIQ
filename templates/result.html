@@ -1,0 +1,283 @@
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+  :root{
+    --bg1:#0f0c29; --bg2:#302b63; --bg3:#24243e;
+    --glass:rgba(255,255,255,.12);
+    --text:#eef2ff; --muted:#b8c1ec;
+    --card:rgba(255,255,255,.08); --stroke:rgba(255,255,255,.18);
+    --track:rgba(255,255,255,.22);
+    --exp:#22c55e; --imp:#38bdf8; --not:#ef4444;
+    --magenta:#d946ef;
+  }
+  .theme-light{
+    --bg1:#f8fafc; --bg2:#f1f5f9; --bg3:#e2e8f0;
+    --glass:rgba(255,255,255,.7);
+    --text:#0f172a; --muted:#475569;
+    --card:#ffffff; --stroke:rgba(2,6,23,.08);
+    --track:#e5e7eb;
+  }
+
+  body{ color:var(--text); background:linear-gradient(120deg,var(--bg1),var(--bg2),var(--bg3)); }
+  .wrap{max-width:1200px;margin:2rem auto;padding:0 1rem}
+  .title{font-weight:800;font-size:clamp(1.4rem,2.6vw,2.1rem)}
+  .sub{color:var(--muted);font-size:.95rem}
+  .pill.glass{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#aee3ff;border-radius:999px;padding:.4rem .9rem;}
+  .theme-light .pill.glass{background:rgba(255,255,255,.9);color:#0f172a;}
+
+  .headline-grid{display:grid;gap:.9rem;margin-top:.9rem;margin-bottom:1rem;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .headline{
+    background:var(--glass);border:6px solid var(--stroke);border-radius:18px;padding:1rem;
+    text-align:center;transition:.2s; cursor:pointer; position:relative;
+  }
+  .headline:hover{transform:translateY(-2px);box-shadow:0 12px 26px rgba(0,0,0,.25);}
+  .hcap{font-size:.9rem;color:var(--muted);font-weight:700}
+  .hnum{font-size:clamp(1.8rem,3vw,2.3rem);font-weight:900}
+
+  .section{margin-top:1.1rem}
+  .hbar{display:flex;align-items:center;gap:.6rem;margin-bottom:.6rem}
+  .hbar .left{width:5px;height:22px;border-radius:6px;background:var(--imp)}
+  .kpi-grid{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+
+  .kcard{
+    background:var(--glass);
+    border:4px solid var(--stroke);
+    border-radius:14px;
+    padding:.9rem;
+    cursor:pointer;
+    transition:.25s;
+    position:relative;
+  }
+  .kcard:hover{transform:translateY(-2px);box-shadow:0 0 18px rgba(255,255,255,.15);}
+  .kcap{color:var(--muted);font-weight:700;font-size:.9rem;margin-bottom:.2rem;}
+  .knum{font-weight:900;font-size:1.8rem}
+  .legend{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:.45rem;margin-top:.15rem;}
+
+  .chip-no{
+    display:inline-flex; align-items:center; gap:.35rem;
+    padding:.12rem .5rem; border-radius:999px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.25);
+    font-weight:700; letter-spacing:.2px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+    cursor:pointer; user-select:none;
+  }
+
+  .pct-bar { height:6px; border-radius:6px; background:var(--track); overflow:hidden; margin-top:4px; }
+  .pct-fill { height:100%; width:0%; transition:width .6s ease; }
+
+  /* ring */
+  .ring{--size:48px;display:inline-grid;place-items:center;width:var(--size);height:var(--size);position:relative;}
+  .ring svg{width:var(--size);height:var(--size);}
+  .ring .track{fill:none;stroke:var(--track);stroke-width:10;opacity:.35;}
+  .ring .progress{fill:none;stroke-width:10;stroke-linecap:round;transform:rotate(-90deg);transform-origin:50% 50%;stroke-dasharray:0 999;transition:stroke .3s ease;}
+  .ring span{position:absolute;font-size:.8rem;font-weight:800;}
+
+  /* Sheet */
+  .top-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:9998;}
+  .top-sheet{position:fixed;top:0;right:-100%;width:min(900px,95%);height:100%;background:var(--bg1);
+    border-left:1px solid var(--stroke);box-shadow:-4px 0 20px rgba(0,0,0,.3);
+    display:flex;flex-direction:column;transition:right .3s ease;z-index:9999;color:var(--text);}
+  .top-sheet.active{right:0;}
+  .top-sheet header{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--stroke);}
+  .sheet-body{padding:12px 18px;overflow:auto;flex:1;}
+  .tablewrap{border:1px solid var(--stroke);border-radius:12px;overflow:auto;}
+  table{width:100%;border-collapse:collapse;font-size:.85rem;}
+  th,td{padding:6px 8px;border-bottom:1px solid var(--stroke);}
+  th{position:sticky;top:0;background:rgba(0,0,0,.2);backdrop-filter:blur(8px);}
+</style>
+
+<div class="wrap">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div>
+      <div class="title">Result — Dashboard</div>
+      <div class="sub">Based on <span class="badge text-bg-info">Mapped_Results.result_order</span></div>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-light" id="themeToggle">🌗</button>
+      <span class="pill glass">Updated: <span id="now"></span></span>
+    </div>
+  </div>
+
+  <section class="headline-grid">
+    <div class="headline" id="kpiProjects" title="Click to view projects list">
+      <div class="hcap">Total Number of Projects</div>
+      <div class="hnum" data-animate="{{ total_projects|default(0) }}">0</div>
+    </div>
+    <div class="headline" id="kpiPatents" title="Click to view all patents">
+      <div class="hcap">Total Number of Patents</div>
+      <div class="hnum" data-animate="{{ total_patents|default(0) }}">0</div>
+    </div>
+  </section>
+
+  {% for label, R in result_summary.items() %}
+  {% set border_color =
+    'dodgerblue' if label=='1' else
+    'limegreen'  if label=='2' else
+    'gold'       if label=='3' else
+    '#d946ef'    if label=='4' else
+    'red'
+  %}
+  <section class="section">
+    <div class="hbar">
+      <div class="left" style="background:{{ border_color }}"></div>
+      <div class="text fw-bold" style="color:{{ border_color }}">Result Order {{ '5+' if label=='5plus' else label }}</div>
+    </div>
+    <div class="kpi-grid">
+      {% set cards = [
+        ('Total','total',R.total,R.total_no,'var(--imp)'),
+        ('Patentryx Rank Below 250','old_lt_250',R.pat_lt,R.pat_lt_no,'var(--exp)'),
+        ('Prion Rank Below 250','new_lt_250',R.pri_lt,R.pri_lt_no,'var(--exp)'),
+        ('Patentryx & Prion <250 (AND)','both_lt_250',R.both_lt,R.both_lt_no,'var(--not)'),
+        ('Patentryx OR Prion <250 (OR)','either_lt_250',R.either_lt,R.either_lt_no,'var(--not)')
+      ] %}
+      {% for cap,filter,val,no,fill in cards %}
+      {% set denom = total_patents if filter=='total' else R.total %}
+      {% set pct = (no / val * 100) if val else 0 %}
+      <div class="kcard"
+           style="border-color:{{ border_color }}; box-shadow:0 0 12px {{ border_color }}40;"
+           data-order="{{label}}" data-filter="{{filter}}" title="Click to view details">
+        <div class="d-flex align-items-start justify-content-between">
+          <div>
+            <div class="kcap">{{cap}}</div>
+            <div class="knum">{{val}}</div>
+            <div class="legend">
+              <span>Not in Initial :</span>
+              <span class="chip-no"
+                    data-nochip
+                    data-order="{{label}}"
+                    data-filter="{{filter}}"
+                    data-no="1">{{no}}</span>
+            </div>
+            <div class="pct-bar">
+              <div class="pct-fill"
+                   style="width:{{ '%0.0f' % pct }}%; background: {{ border_color }}"></div>
+            </div>
+            <small style="font-size:.7rem;color:{{ border_color }}">{{ '%0.0f' % pct }}%</small>
+          </div>
+
+          {# Hide the ring ONLY for the Total card #}
+          {% if filter != 'total' %}
+          <div class="ring" data-ring data-part="{{ val or 0 }}" data-total="{{ denom or 0 }}" data-color="{{ border_color }}">
+            <svg viewBox="0 0 100 100">
+              <circle class="track" cx="50" cy="50" r="45"></circle>
+              <circle class="progress" cx="50" cy="50" r="45"></circle>
+            </svg>
+            <span data-pct></span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>
+
+<!-- Slide-over sheet -->
+<div class="top-sheet-backdrop" id="sheetBackdrop"></div>
+<div class="top-sheet" id="topSheet">
+  <header>
+    <h5 id="sheetTitle" class="mb-0">Details</h5>
+    <button class="btn btn-sm btn-outline-light" id="closeSheet">Close</button>
+  </header>
+  <div class="sheet-body">
+    <div id="sheetCount" class="sub mb-2"></div>
+    <div class="tablewrap">
+      <table id="dataTable"></table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Clock */
+function fmtNow(){const d=new Date(),p=n=>String(n).padStart(2,"0");
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;}
+document.getElementById("now").textContent=fmtNow();
+setInterval(()=>{document.getElementById("now").textContent=fmtNow()},1000);
+
+/* Theme toggle */
+const root=document.documentElement,btn=document.getElementById("themeToggle");
+if(localStorage.getItem("theme")==="light"){root.classList.add("theme-light");btn.textContent="🌞";}
+btn.onclick=()=>{root.classList.toggle("theme-light");
+  const light=root.classList.contains("theme-light");
+  localStorage.setItem("theme",light?"light":"dark");
+  btn.textContent=light?"🌞":"🌗";};
+
+/* Count-up anim */
+document.querySelectorAll('[data-animate]').forEach(el=>{
+  const end=+el.dataset.animate||0,t0=performance.now(),dur=800;
+  (function step(t){const p=Math.min((t-t0)/dur,1);
+    el.textContent=Math.round(end*p).toLocaleString();
+    if(p<1)requestAnimationFrame(step)})(t0);
+});
+
+/* Rings (skip totals because HTML omits data-ring) */
+const CIRC=2*Math.PI*45;
+function pct(part,total){part=+part||0;total=+total||0;return total>0?(part/total)*100:0;}
+document.querySelectorAll('[data-ring]').forEach(r=>{
+  const part=+r.dataset.part||0,total=+r.dataset.total||0,color=r.dataset.color;
+  const p=pct(part,total);
+  const progress=r.querySelector('.progress');
+  const label=r.querySelector('[data-pct]');
+  progress.style.stroke=color;
+  progress.style.strokeDasharray=`${(Math.min(100,p)/100)*CIRC} ${CIRC}`;
+  label.textContent = total>0 ? (p<1 && p>0 ? '<1%' : Math.round(p)+'%') : '0%';
+  label.style.color=color;
+});
+
+/* Sheet logic */
+const sheet=document.getElementById('topSheet'),
+      backdrop=document.getElementById('sheetBackdrop'),
+      dataTable=document.getElementById('dataTable'),
+      sheetTitle=document.getElementById('sheetTitle'),
+      sheetCount=document.getElementById('sheetCount');
+
+function openSheet(){sheet.classList.add('active');backdrop.style.display='block';}
+function closeSheet(){sheet.classList.remove('active');backdrop.style.display='none';}
+document.getElementById('closeSheet').onclick=closeSheet;
+backdrop.onclick=closeSheet;
+
+/* Render table */
+function renderTable(cols,rows){
+  const thead='<thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead>';
+  const tbody=rows.map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('');
+  dataTable.innerHTML=thead+'<tbody>'+tbody+'</tbody>';
+}
+
+/* Fetch helper — expects your Flask /result_data endpoint */
+async function fetchAndShow(params,title){
+  try{
+    const res=await fetch('/result_data?'+new URLSearchParams(params));
+    const data=await res.json();
+    if(data.error){alert(data.error);return;}
+    sheetTitle.textContent=title;
+    sheetCount.textContent='Count: '+(data.count||0);
+    renderTable(data.columns||[],data.rows||[]);
+    openSheet();
+  }catch(err){console.error(err);alert('Failed to load data.');}
+}
+
+/* KPI clicks */
+document.getElementById('kpiProjects').onclick=()=>fetchAndShow({metric:'projects'}, 'Projects — patent counts');
+document.getElementById('kpiPatents').onclick =()=>fetchAndShow({metric:'patents'},  'All Patents');
+
+/* Card clicks (no=0 -> include all) */
+document.querySelectorAll('.kcard').forEach(c=>{
+  c.addEventListener('click',()=>{
+    fetchAndShow({order:c.dataset.order, filter:c.dataset.filter, no:'0'},
+      c.querySelector('.kcap').textContent);
+  });
+});
+
+/* “Not in Initial” chip clicks (no=1) */
+document.querySelectorAll('[data-nochip]').forEach(ch=>{
+  ch.addEventListener('click',e=>{
+    e.stopPropagation();
+    fetchAndShow({order:ch.dataset.order, filter:ch.dataset.filter, no:'1'},
+      `${ch.dataset.filter.replaceAll('_',' ').toUpperCase()} — NOT IN INITIAL`);
+  });
+});
+</script>
+
