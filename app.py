@@ -651,7 +651,6 @@ PriorIQ App (Datasolve Analytics)
 def page_a():
     return render_template("initial.html")
 
-
 @app.route('/prioriq', methods=['POST'])
 def prioriq_route():
     username = session.get('user_name', 'Anonymous')
@@ -692,12 +691,17 @@ def prioriq_route():
             err_msg = f"Failed to read Excel: {ex_read}"
             return jsonify({"status": "error", "message": err_msg}), 400
 
+        # Required columns (same as before)
         required_cols = ['Title', 'Abstract', 'Claims', 'Description']
         missing = [c for c in required_cols if c not in df.columns]
         if missing:
             err_msg = f"Missing columns in Input: {', '.join(missing)}"
             return jsonify({"status": "error", "message": err_msg}), 400
 
+        # Optional new column
+        fan_col = 'Questel unique family ID (FAN)'
+
+        # Build combined text for similarity
         df['All'] = df[required_cols].fillna('').agg(' '.join, axis=1)
 
         model_path = os.path.join(os.getcwd(), 'Static', 'trained_model_fasttriplet_3')
@@ -711,7 +715,15 @@ def prioriq_route():
 
         df['Similarity'] = util.cos_sim(query_embedding, doc_embeddings)[0].cpu().numpy()
         df_sorted = df.sort_values(by='Similarity', ascending=False).reset_index(drop=True)
+
+        # Insert project code at first column
         df_sorted.insert(0, 'Project_code', project_code)
+
+        # --- Reorder so that FAN column (if present) is LAST ---
+        if fan_col in df_sorted.columns:
+            # take all columns except FAN, then append FAN at the end
+            cols_except_fan = [c for c in df_sorted.columns if c != fan_col]
+            df_sorted = df_sorted[cols_except_fan + [fan_col]]
 
         excel_name = f"{project_code}_Initial_PriorIQ_Output.xlsx"
         zip_name   = f"{project_code}_PriorIQ_Output.zip"
@@ -729,7 +741,7 @@ def prioriq_route():
 
         success = True
 
-        # 🔔 Notify admins + EXTRA_ALERT_EMAILS (and optional per-call extra)
+        # 🔔 Notify admins
         try:
             notify_admins_initial(
                 tool_label="PriorIQ",
@@ -820,11 +832,16 @@ def patentryx_route():
             err_msg = f"Failed to read Excel: {ex_read}"
             return jsonify({"status": "error", "message": err_msg}), 400
 
+        # Required columns
         required_cols = ['Abstract', 'Claims']
         missing = [c for c in required_cols if c not in df.columns]
         if missing:
             err_msg = f"Missing columns in Input: {', '.join(missing)}"
             return jsonify({"status": "error", "message": err_msg}), 400
+
+        # Optional input columns
+        pub_col = 'Publication numbers with kind code'
+        fan_col = 'Questel unique family ID (FAN)'  # NEW COLUMN
 
         df['Full'] = df['Abstract'].fillna('') + ' ' + df['Claims'].fillna('')
         if len(df) > 0:
@@ -845,23 +862,34 @@ def patentryx_route():
         similarity = np.dot(tfv_vectors.toarray(), tfv_vectors.toarray().T)
 
         results = []
-        pub_col = 'Publication numbers with kind code'
         for i in np.argsort(similarity[0])[::-1]:
             if i == 0:
                 continue
             score = float(similarity[0][i])
             if score > 0:
+                row = df.iloc[i]
                 results.append({
                     'Project_code': project_code,
-                    'Number': df.iloc[i].get(pub_col, ''),
-                    'Score': score
+                    'Number': row.get(pub_col, ''),
+                    'Score': score,
+                    fan_col: row.get(fan_col, '')   # NEW: include FAN column
                 })
 
         df_sorted = pd.DataFrame(results)
+
+        # Final column ordering
         if not df_sorted.empty:
-            df_sorted['Patent_No'] = df_sorted['Number'].astype(str).str.replace(r'\s+', '', regex=True)
+            df_sorted['Patent_No'] = (
+                df_sorted['Number']
+                .astype(str)
+                .str.replace(r'\s+', '', regex=True)
+            )
+
+            # FAN must be LAST
+            final_order = ['Project_code', 'Number', 'Score', 'Patent_No', fan_col]
+            df_sorted = df_sorted[[c for c in final_order if c in df_sorted.columns]]
         else:
-            df_sorted = pd.DataFrame(columns=['Project_code','Number','Score','Patent_No'])
+            df_sorted = pd.DataFrame(columns=['Project_code', 'Number', 'Score', 'Patent_No', fan_col])
 
         excel_name = f"{project_code}_Initial_Patentryx_Output.xlsx"
         zip_name   = f"{project_code}_Patentryx_Output.zip"
@@ -869,8 +897,10 @@ def patentryx_route():
         zip_path   = os.path.join(TEMP_FOLDER, zip_name)
 
         df_sorted.to_excel(excel_path, index=False)
+
         with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zipf:
             zipf.write(excel_path, arcname=excel_name)
+
         os.remove(excel_path)
 
         if not os.path.exists(zip_path):
@@ -879,7 +909,7 @@ def patentryx_route():
 
         success = True
 
-        # 🔔 Notify
+        # Admin Notify
         try:
             notify_admins_initial(
                 tool_label="Patentryx",
@@ -887,7 +917,7 @@ def patentryx_route():
                 user_email=email,
                 project_code=project_code,
                 upload_filename=upload_filename,
-                extra_emails=None  # or specific list if needed
+                extra_emails=None
             )
         except Exception as _notify_err:
             print(f"[AdminNotify] Patentryx notify error: {_notify_err}")
@@ -970,7 +1000,12 @@ def bothranking_route():
             err_msg = f"Failed to read Excel: {ex_read}"
             return jsonify({"status": "error", "message": err_msg}), 400
 
-        # --- Patentryx (TF-IDF) ---
+        # Optional new column (used in both outputs, last column)
+        fan_col = 'Questel unique family ID (FAN)'
+
+        # ----------------------------
+        # --- Patentryx (TF-IDF)  ---
+        # ----------------------------
         if not {'Abstract','Claims'}.issubset(df.columns):
             missing = [c for c in ['Abstract','Claims'] if c not in df.columns]
             err_msg = f"Missing columns in Excel for Patentryx: {', '.join(missing)}"
@@ -996,19 +1031,27 @@ def bothranking_route():
                 continue
             score = float(similarity[0][i])
             if score > 0:
+                row = df_pat.iloc[i]
                 pat_results.append({
                     'Project_code': project_code,
-                    'Number': df_pat.iloc[i].get(pub_col, ''),
-                    'Score': score
+                    'Number'      : row.get(pub_col, ''),
+                    'Score'       : score,
+                    fan_col       : row.get(fan_col, '')  # FAN value if column exists
                 })
 
         df_patentryx = pd.DataFrame(pat_results)
         if not df_patentryx.empty:
             df_patentryx['Patent_No'] = df_patentryx['Number'].astype(str).str.replace(r'\s+', '', regex=True)
-        else:
-            df_patentryx = pd.DataFrame(columns=['Project_code','Number','Score','Patent_No'])
 
-        # --- PriorIQ (SentenceTransformer) ---
+            # Ensure FAN is last column
+            final_pat_cols = ['Project_code', 'Number', 'Score', 'Patent_No', fan_col]
+            df_patentryx = df_patentryx[[c for c in final_pat_cols if c in df_patentryx.columns]]
+        else:
+            df_patentryx = pd.DataFrame(columns=['Project_code','Number','Score','Patent_No', fan_col])
+
+        # -------------------------------
+        # --- PriorIQ (SentenceTransformer)
+        # -------------------------------
         for col in ['Title','Abstract','Claims','Description']:
             if col not in df.columns:
                 err_msg = f"Missing columns in Excel for PriorIQ: {col}"
@@ -1030,7 +1073,14 @@ def bothranking_route():
         df_prioriq = df_prior.sort_values(by='Similarity', ascending=False).reset_index(drop=True)
         df_prioriq.insert(0, 'Project_code', project_code)
 
-        # Save both and zip
+        # Reorder so FAN (if present) is LAST
+        if fan_col in df_prioriq.columns:
+            prior_cols_except_fan = [c for c in df_prioriq.columns if c != fan_col]
+            df_prioriq = df_prioriq[prior_cols_except_fan + [fan_col]]
+
+        # -------------------------
+        # Save both and zip them
+        # -------------------------
         excel_pat   = f"{project_code}_Patentryx_Output.xlsx"
         excel_prior = f"{project_code}_PriorIQ_Output.xlsx"
         zip_name    = f"{project_code}_Combined_Output.zip"
@@ -1047,7 +1097,8 @@ def bothranking_route():
             zipf.write(path_prior, arcname=excel_prior)
 
         try:
-            os.remove(path_pat); os.remove(path_prior)
+            os.remove(path_pat)
+            os.remove(path_prior)
         except Exception:
             pass
 
@@ -1107,7 +1158,8 @@ def bothranking_route():
 
 
 #########################################################################################################################
-# #final 
+
+#final
 from datetime import datetime, date
 from models import User  # make sure this import exists
 
@@ -1200,6 +1252,9 @@ def page_b():
     chosen_analyst = (request.form.get('analyst') or session_username).strip() or session_username
 
     try:
+        # FAN column name (optional in input)
+        fan_col = 'Questel unique family ID (FAN)'
+
         # ───────── inputs ─────────
         abstract         = request.form['abstract']
         initial_file     = request.files['initial_file']
@@ -1296,6 +1351,11 @@ def page_b():
 
                 df_new_sorted.insert(0, 'Project_code', project_code)
 
+                # Ensure FAN (if present) is last column in this output
+                if fan_col in df_new_sorted.columns:
+                    cols_except_fan = [c for c in df_new_sorted.columns if c != fan_col]
+                    df_new_sorted = df_new_sorted[cols_except_fan + [fan_col]]
+
                 with BytesIO() as new_out:
                     with pd.ExcelWriter(new_out, engine='xlsxwriter') as writer:
                         df_new_sorted.to_excel(writer, index=False)
@@ -1348,18 +1408,24 @@ def page_b():
                         continue
                     score = similarity[0][i]
                     if score > 0:
-                        number_val = df_final.iloc[i][pub_col] if pub_col in df_final.columns else ""
+                        row = df_final.iloc[i]
+                        number_val = row[pub_col] if pub_col in df_final.columns else ""
                         final_old.append({
                             'Project_code': project_code,
                             'Number'      : number_val,
-                            'Score'       : score
+                            'Score'       : score,
+                            fan_col       : row.get(fan_col, '')  # FAN from final file (if exists)
                         })
 
                 df_old_sorted = pd.DataFrame(final_old)
                 if not df_old_sorted.empty:
                     df_old_sorted['Patent_No'] = df_old_sorted['Number'].astype(str).str.replace(r'\s+', '', regex=True)
+
+                    # Ensure FAN last in this output
+                    final_old_cols = ['Project_code', 'Number', 'Score', 'Patent_No', fan_col]
+                    df_old_sorted = df_old_sorted[[c for c in final_old_cols if c in df_old_sorted.columns]]
                 else:
-                    df_old_sorted['Patent_No'] = pd.Series(dtype=str)
+                    df_old_sorted = pd.DataFrame(columns=['Project_code','Number','Score','Patent_No', fan_col])
 
                 with BytesIO() as old_out:
                     with pd.ExcelWriter(old_out, engine='xlsxwriter') as writer:
@@ -1434,10 +1500,16 @@ def page_b():
 
                 df_rank_input['Version'] = ''
 
-                final_cols = [
+                # base final columns
+                base_final_cols = [
                     'Project_code', 'Patent_No', 'Result_Order', 'Individual_rating',
                     'Old_Rank_Order', 'New_Rank_Order', 'Yes_No', 'Version'
                 ]
+                # add FAN if present in rank_input
+                if fan_col in df_rank_input.columns:
+                    final_cols = base_final_cols + [fan_col]
+                else:
+                    final_cols = base_final_cols
 
                 if 'Result_Order' in df_rank_input.columns:
                     df_final_ranked = (
@@ -1478,6 +1550,7 @@ def page_b():
                     'Version'          : 'Version',
                     'Dispatch_Date'    : date_col,
                     'Analyst'          : 'analyst',   # ensure analyst goes to DB
+                    # fan_col NOT mapped → not pushed to DB
                 }
                 df_for_db = df_final_ranked.rename(columns=db_cols_map)
 
@@ -1754,162 +1827,6 @@ PriorIQ App (Datasolve Analytics)
             pd.DataFrame([log_data]).to_sql("prioriq_log", con=engine, if_exists="append", index=False)
         except Exception as e2:
             print(f"Error logging execution details to MySQL: {e2}")
-
-
-
-
-# @app.route("/push_to_db", methods=["POST"])
-# def push_to_db():
-#     # session context
-#     session_username = session.get('user_name', 'Anonymous')
-#     session_email    = session.get("user_email", "Unknown")
-
-#     wants_json = "application/json" in (request.headers.get("Accept","").lower())
-#     start_dt = datetime.now()
-#     results = 0
-
-#     # analyst from form (fallback to logged-in user)
-#     chosen_analyst = (request.form.get("analyst") or session_username).strip() or session_username
-
-#     try:
-#         project_code = (request.form.get("project_code") or "").strip()
-#         if not project_code:
-#             msg = "⚠️ Project code is required."
-#             return (jsonify({"status":"error","message": msg}), 400) if wants_json else (msg, 400)
-
-#         # Attempt memory stash first
-#         df = session_data.get(project_code)
-
-#         # Fallback: disk stash
-#         if df is None or getattr(df, "empty", True):
-#             df = load_df_stash(project_code)
-
-#         if df is None or getattr(df, "empty", True):
-#             msg = "⚠️ No data available to push for this project code."
-#             return (jsonify({"status":"error","message": msg}), 400) if wants_json else (msg, 400)
-
-#         # Ensure we have a valid date column mapped to the DB's date col
-#         date_col = get_mapped_results_date_col(engine)  # e.g., 'dispatch_date' / 'date'
-#         if date_col not in df.columns:
-#             df[date_col] = pd.Timestamp('today').date()
-#         else:
-#             try:
-#                 df[date_col] = pd.to_datetime(df[date_col], errors='coerce').dt.date
-#                 if df[date_col].isna().all():
-#                     df[date_col] = pd.Timestamp('today').date()
-#             except Exception:
-#                 df[date_col] = pd.Timestamp('today').date()
-
-#         # Determine next Version (max 3)
-#         chk = text("""
-#             SELECT COUNT(DISTINCT Version) AS version_count
-#             FROM Mapped_Results
-#             WHERE Project_code = :project_code
-#         """)
-#         with engine.connect() as conn:
-#             row = conn.execute(chk, {"project_code": project_code}).fetchone()
-#             version_count = (row[0] if row else 0) or 0
-
-#         if version_count >= 3:
-#             msg = "⚠️ Maximum of 3 versions have already been pushed for this project code."
-#             return (jsonify({"status":"error","message": msg}), 400) if wants_json else (msg, 400)
-
-#         next_version = f"V{version_count + 1}"
-
-#         # Prepare push frame
-#         df_to_push = df.copy()
-#         df_to_push['Version'] = next_version
-
-#         # If the table has any analyst-like column, populate it; else keep 'analyst'
-#         try:
-#             insp = inspect(engine)
-#             cols_info = insp.get_columns('Mapped_Results')  # schema can be added if needed
-#             existing_cols = {c['name'] for c in cols_info}
-#         except Exception:
-#             existing_cols = set(df_to_push.columns)
-
-#         possible_analyst_cols = ['analyst', 'Analyst', 'pushed_by', 'created_by', 'Created_By', 'username']
-#         set_any = False
-#         for col in possible_analyst_cols:
-#             if col in existing_cols:
-#                 df_to_push[col] = chosen_analyst
-#                 set_any = True
-#                 break
-#         if not set_any:
-#             if 'analyst' not in df_to_push.columns:
-#                 df_to_push['analyst'] = chosen_analyst
-
-#         # Actually push
-#         df_to_push.to_sql("Mapped_Results", con=engine, if_exists="append", index=False)
-#         results = len(df_to_push)
-
-#         # 🔔 Notify admins on successful push
-#         try:
-#             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#             subject = f"[PriorIQ] Final results pushed – {project_code}"
-
-#             # If you want to derive the input file name from pattern:
-#             # e.g. "{project_code}_Intial_Dataset.xlsx"
-#             input_file_display = f"{project_code}_Intial_Dataset.xlsx"
-
-#             body = f"""
-# Hi Admin,
-
-# User        : {session_username} ({session_email})
-# Tool        : PriorIQ (Final Dataset)
-# Project Code: {project_code or '-'}
-# Input File  : {input_file_display}
-# Pushed Results : {results}
-# Date        : {now_str}
-
-# Regards,
-# PriorIQ App (Datasolve Analytics)
-# """.strip()
-
-#             # Uses your existing helper (admins + extra emails, if configured earlier)
-#             send_admin_email(subject, body)
-#         except Exception as mail_err:
-#             print(f"[AdminNotify] PushToDB notify error: {mail_err}")
-
-#         # Cleanup on success
-#         cleanup_stash(project_code)
-
-#         ok_msg = f"✅ {results} records for project code '{project_code}' successfully pushed as version {next_version}."
-#         return jsonify({"status":"ok","message": ok_msg, "results": results, "version": next_version}) if wants_json else ok_msg
-
-#     except Exception as e:
-#         traceback.print_exc()
-#         err_msg = f"Error: {str(e)}"
-#         return (jsonify({"status":"error","message": f"❌ {err_msg}"}), 500) if wants_json else (f"❌ {err_msg}", 500)
-
-#     finally:
-#         end_dt = datetime.now()
-#         runtime_hms = str(end_dt - start_dt).split('.')[0]
-#         start_date = start_dt.strftime('%Y-%m-%d')
-#         status_msg = "Success"
-#         if 'e' in locals():
-#             status_msg = f"Error: {str(e)}"
-
-#         # Write execution log
-#         log_data = {
-#             "name"             : chosen_analyst,  # use selected analyst in logs
-#             "email"            : session_email,
-#             "abstract"         : "",
-#             "upload_filename"  : "",
-#             "downloadfile_name": "",
-#             "action"           : "PushToDB",
-#             "start_time"       : start_dt.strftime('%H:%M:%S'),
-#             "end_time"         : end_dt.strftime('%H:%M:%S'),
-#             "date": start_date,
-#             "status"           : status_msg,
-#             "results"          : results or 0,
-#             "project_code"     : locals().get("project_code", ""),
-#             "execution_time"   : runtime_hms
-#         }
-#         try:
-#             pd.DataFrame([log_data]).to_sql("prioriq_log", con=engine, if_exists="append", index=False)
-#         except Exception as e2:
-#             print(f"Error logging execution details to MySQL: {e2}")
 
 
 ######################################################################################################################

@@ -1,0 +1,71 @@
+/* 🔒 Prevent text selection everywhere */
+* {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.search-wrapper {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.search-wrapper h2 {
+  color: #421A63;
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.search-form {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.search-form label {
+  font-weight: bold;
+}
+
+.search-form input[type="text"] {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  width: 220px;
+}
+
+.search-form button {
+  padding: 8px 16px;
+  background-color: #00796b;
+  color: white;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.search-form button:hover {
+  background-color: #004d40;
+}
+
+.results-table-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.results-table {
+  max-width: 90%;
+  overflow-x: auto;
+}
+
+.error-message {
+  color: red;
+  text-align: center;
+  font-weight: bold;
+  margin-top: 20px;
+}
